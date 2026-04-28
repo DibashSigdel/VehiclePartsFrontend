@@ -1,0 +1,282 @@
+@page "/admin/users"
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Admin Users</PageTitle>
+
+<section class="admin-page-head">
+    <div>
+        <h1 class="admin-page-title">User Administration</h1>
+        <p class="subtitle">Manage staff registration, role changes, and account cleanup.</p>
+    </div>
+    <div class="admin-stats">
+        <div class="stat-chip">Total: @_users.Count</div>
+        <div class="stat-chip">Admins: @_users.Count(x => x.Role == "Admin")</div>
+        <div class="stat-chip">Staff: @_users.Count(x => x.Role == "Staff")</div>
+        <div class="stat-chip">Customers: @_users.Count(x => x.Role == "Customer")</div>
+    </div>
+</section>
+
+<section class="admin-users-layout">
+    <div class="dashboard-card admin-form-panel">
+        <h2>Create New User</h2>
+        <p class="subtitle">Use this form to add staff, customer, or admin accounts.</p>
+
+        <EditForm Model="_createUserModel" OnValidSubmit="CreateUser" FormName="AdminCreateUserForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label>Name</label>
+                <InputText class="form-control" @bind-Value="_createUserModel.Name" />
+            </div>
+
+            <div class="mb-3">
+                <label>Email</label>
+                <InputText class="form-control" @bind-Value="_createUserModel.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label>Phone</label>
+                <InputText class="form-control" @bind-Value="_createUserModel.Phone" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <InputText class="form-control" @bind-Value="_createUserModel.Password" type="password" />
+            </div>
+
+            <div class="mb-3">
+                <label>Role</label>
+                <InputSelect class="form-control" @bind-Value="_createUserModel.Role">
+                    <option value="Staff">Staff</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Admin">Admin</option>
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label>Address</label>
+                <InputText class="form-control" @bind-Value="_createUserModel.Address" />
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit" disabled="@_isLoadingCreate">
+                @(_isLoadingCreate ? "Creating..." : "Create User")
+            </button>
+        </EditForm>
+
+        @if (!string.IsNullOrWhiteSpace(_createMessage))
+        {
+            <div class="@GetFeedbackClass(_createSuccess)">
+                @_createMessage
+            </div>
+        }
+    </div>
+
+    <div class="dashboard-card admin-table-panel">
+        <div class="table-head-row">
+            <h2>All Users</h2>
+            <InputText class="form-control table-search" @bind-Value="_searchTerm" placeholder="Search by name or email..." />
+        </div>
+
+        @if (_isLoadingUsers)
+        {
+            <p>Loading users...</p>
+        }
+        else if (GetVisibleUsers().Count == 0)
+        {
+            <p>No users found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Current Role</th>
+                            <th>Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in GetVisibleUsers())
+                        {
+                            <tr>
+                                <td>@user.Name</td>
+                                <td>@user.Email</td>
+                                <td><span class="role-pill">@user.Role</span></td>
+                                <td>
+                                    <div class="manage-actions">
+                                        <InputSelect class="form-control role-select" @bind-Value="user.Role">
+                                            <option value="Admin">Admin</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Customer">Customer</option>
+                                        </InputSelect>
+                                        <button class="btn btn-sm btn-outline-primary" disabled="@IsUserActionBusy(user.UserId)" @onclick="() => UpdateRole(user)">
+                                            @(IsUserActionBusy(user.UserId) ? "Saving..." : "Save")
+                                        </button>
+
+                                        @if (_pendingDeleteUserId == user.UserId)
+                                        {
+                                            <button class="btn btn-sm btn-danger" disabled="@IsUserActionBusy(user.UserId)" @onclick="() => DeleteUser(user)">
+                                                Confirm Delete
+                                            </button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelDelete">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(user.UserId)">Delete</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_roleMessage))
+        {
+            <div class="@GetFeedbackClass(_roleSuccess)">
+                @_roleMessage
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<AdminUserDto> _users = [];
+    private AdminCreateUserRequestDto _createUserModel = new();
+    private bool _isLoadingCreate;
+    private bool _isLoadingUsers;
+    private int? _activeUserActionId;
+    private int? _pendingDeleteUserId;
+    private string _searchTerm = string.Empty;
+    private string _createMessage = string.Empty;
+    private bool _createSuccess;
+    private string _roleMessage = string.Empty;
+    private bool _roleSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser?.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isLoadingUsers = true;
+        var users = await AuthApiService.GetAdminUsersAsync(AuthStateService.CurrentUser.Token);
+        _users.Clear();
+        _users.AddRange(users);
+        _isLoadingUsers = false;
+    }
+
+    private async Task CreateUser()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isLoadingCreate = true;
+        _createMessage = string.Empty;
+        _createSuccess = false;
+
+        var success = await AuthApiService.CreateUserByAdminAsync(_createUserModel, AuthStateService.CurrentUser.Token);
+        _isLoadingCreate = false;
+
+        if (!success)
+        {
+            _createMessage = "Failed to create user. Check email/inputs.";
+            _createSuccess = false;
+            return;
+        }
+
+        _createMessage = "User created successfully.";
+        _createSuccess = true;
+        _createUserModel = new AdminCreateUserRequestDto();
+        await LoadUsers();
+    }
+
+    private async Task UpdateRole(AdminUserDto user)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activeUserActionId = user.UserId;
+        _roleSuccess = false;
+        _roleMessage = string.Empty;
+        var success = await AuthApiService.UpdateUserRoleAsync(user.UserId, user.Role, AuthStateService.CurrentUser.Token);
+        _roleMessage = success ? "User role updated." : "Failed to update role.";
+        _roleSuccess = success;
+        _activeUserActionId = null;
+        await LoadUsers();
+    }
+
+    private async Task DeleteUser(AdminUserDto user)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activeUserActionId = user.UserId;
+        _roleSuccess = false;
+        _roleMessage = string.Empty;
+        var success = await AuthApiService.DeleteUserAsync(user.UserId, AuthStateService.CurrentUser.Token);
+        _roleMessage = success ? "User deleted." : "Failed to delete user.";
+        _roleSuccess = success;
+        _activeUserActionId = null;
+        _pendingDeleteUserId = null;
+        await LoadUsers();
+    }
+
+    private List<AdminUserDto> GetVisibleUsers()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            return _users;
+        }
+
+        var keyword = _searchTerm.Trim().ToLowerInvariant();
+        return _users
+            .Where(x => x.Name.ToLowerInvariant().Contains(keyword) || x.Email.ToLowerInvariant().Contains(keyword))
+            .ToList();
+    }
+
+    private void AskDelete(int userId)
+    {
+        _pendingDeleteUserId = userId;
+    }
+
+    private void CancelDelete()
+    {
+        _pendingDeleteUserId = null;
+    }
+
+    private bool IsUserActionBusy(int userId)
+    {
+        return _activeUserActionId == userId;
+    }
+
+    private string GetFeedbackClass(bool isSuccess)
+    {
+        return isSuccess ? "status-alert success" : "status-alert error";
+    }
+}

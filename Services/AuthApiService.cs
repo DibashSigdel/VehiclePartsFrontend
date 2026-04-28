@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using VehiclePartsFrontend.Models.Admin;
 using VehiclePartsFrontend.Models.Auth;
 
 namespace VehiclePartsFrontend.Services;
@@ -32,5 +34,54 @@ public class AuthApiService
         }
 
         return await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+    }
+
+    public async Task<List<AdminUserDto>> GetAdminUsersAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/users");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var users = await response.Content.ReadFromJsonAsync<List<AdminUserDto>>();
+        return users ?? [];
+    }
+
+    public async Task<bool> CreateUserByAdminAsync(AdminCreateUserRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/users")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> UpdateUserRoleAsync(int userId, string role, string token)
+    {
+        var requestModel = new AdminUpdateUserRoleRequestDto { Role = role };
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/admin/users/{userId}/role")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeleteUserAsync(int userId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/admin/users/{userId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
     }
 }

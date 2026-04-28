@@ -3,7 +3,10 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">VehiclePartsSystem</a>
+        <a class="navbar-brand" href="">
+            <span class="brand-dot"></span>
+            VehiclePartsSystem
+        </a>
     </div>
 </div>
 
@@ -23,6 +26,15 @@
             </NavLink>
         </div>
 
+        @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Admin")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/users">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Manage Staff & Roles
+                </NavLink>
+            </div>
+        }
+
         @if (!AuthStateService.IsLoggedIn)
         {
             <div class="nav-item px-3">
@@ -34,9 +46,10 @@
 
         @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
         {
-            <div class="nav-item px-3">
-                <span class="nav-link">
-                    @AuthStateService.CurrentUser.Name (@AuthStateService.CurrentUser.Role)
+            <div class="nav-item px-3 user-info-item">
+                <span class="nav-link user-info-chip">
+                    @AuthStateService.CurrentUser.Name
+                    <span class="user-role-pill">@AuthStateService.CurrentUser.Role</span>
                 </span>
             </div>
             <div class="nav-item px-3">
