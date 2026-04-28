@@ -1,0 +1,507 @@
+@page "/admin/parts"
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Admin Parts</PageTitle>
+
+<section class="admin-page-head">
+    <div>
+        <h1 class="admin-page-title">Parts Administration</h1>
+        <p class="subtitle">Add, edit, and delete parts with stock details.</p>
+    </div>
+    <div class="admin-stats">
+        <div class="stat-chip">Total: @_parts.Count</div>
+        <div class="stat-chip">Active: @_parts.Count(x => x.IsActive)</div>
+        <div class="stat-chip">Low Stock: @_parts.Count(x => x.QuantityOnHand <= x.ReorderLevel)</div>
+    </div>
+</section>
+
+@if (_isCategoryModalOpen)
+{
+    <div class="modal-backdrop-simple" @onclick="CloseCategoryModal">
+        <div class="modal-card-simple" @onclick:stopPropagation="true">
+            <div class="table-head-row">
+                <h2>Manage Categories</h2>
+                <button class="btn btn-sm btn-light" @onclick="CloseCategoryModal">Close</button>
+            </div>
+
+            <EditForm Model="_createCategoryModel" OnValidSubmit="CreateCategory" FormName="CreateCategoryForm">
+                <DataAnnotationsValidator />
+                <div class="manage-actions">
+                    <InputText class="form-control" @bind-Value="_createCategoryModel.CategoryName" placeholder="New category name..." />
+                    <button class="btn btn-primary" type="submit" disabled="@_isSavingCategory">
+                        @(_isSavingCategory ? "Adding..." : "Add Category")
+                    </button>
+                </div>
+            </EditForm>
+
+            <div class="table-responsive mt-3">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Category Name</th>
+                            <th>Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in _categories)
+                        {
+                            <tr>
+                                <td>
+                                    @if (_editingCategoryId == category.CategoryId)
+                                    {
+                                        <InputText class="form-control" @bind-Value="_editCategoryName" />
+                                    }
+                                    else
+                                    {
+                                        @category.CategoryName
+                                    }
+                                </td>
+                                <td>
+                                    <div class="manage-actions">
+                                        @if (_editingCategoryId == category.CategoryId)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => SaveCategoryEdit(category.CategoryId)">Save</button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelCategoryEdit">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => StartCategoryEdit(category)">Edit</button>
+                                        }
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCategory(category.CategoryId)">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_categoryMessage))
+            {
+                <div class="@GetFeedbackClass(_categorySuccess)">
+                    @_categoryMessage
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<section class="admin-users-layout">
+    <div class="dashboard-card admin-form-panel">
+        <h2>Create Part</h2>
+        <p class="subtitle">Register new parts and initial stock quantity.</p>
+        <button class="btn btn-light mb-3" @onclick="OpenCategoryModal">Manage Categories</button>
+
+        <EditForm Model="_createPartModel" OnValidSubmit="CreatePart" FormName="AdminCreatePartForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label>Category</label>
+                <InputSelect class="form-control" @bind-Value="_createPartModel.CategoryId">
+                    <option value="0">Select Category</option>
+                    @foreach (var category in _categories)
+                    {
+                        <option value="@category.CategoryId">@category.CategoryName</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label>Part Name</label>
+                <InputText class="form-control" @bind-Value="_createPartModel.PartName" />
+            </div>
+
+            <div class="mb-3">
+                <label>Description</label>
+                <InputText class="form-control" @bind-Value="_createPartModel.Description" />
+            </div>
+
+            <div class="mb-3">
+                <label>Selling Price</label>
+                <InputNumber class="form-control" @bind-Value="_createPartModel.SellingPrice" />
+            </div>
+
+            <div class="mb-3">
+                <label>Reorder Level</label>
+                <InputNumber class="form-control" @bind-Value="_createPartModel.ReorderLevel" />
+            </div>
+
+            <div class="mb-3">
+                <label>Quantity On Hand</label>
+                <InputNumber class="form-control" @bind-Value="_createPartModel.QuantityOnHand" />
+            </div>
+
+            <div class="mb-3">
+                <label>Status</label>
+                <InputSelect class="form-control" @bind-Value="_createPartModel.IsActive">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </InputSelect>
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit" disabled="@_isCreatingPart">
+                @(_isCreatingPart ? "Creating..." : "Create Part")
+            </button>
+        </EditForm>
+
+        @if (!string.IsNullOrWhiteSpace(_partMessage))
+        {
+            <div class="@GetFeedbackClass(_partSuccess)">
+                @_partMessage
+            </div>
+        }
+    </div>
+
+    <div class="dashboard-card admin-table-panel">
+        <div class="table-head-row">
+            <h2>All Parts</h2>
+            <InputText class="form-control table-search" @bind-Value="_searchTerm" placeholder="Search by part name..." />
+        </div>
+
+        @if (_isLoadingParts)
+        {
+            <p>Loading parts...</p>
+        }
+        else if (GetVisibleParts().Count == 0)
+        {
+            <p>No parts found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Part</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var part in GetVisibleParts())
+                        {
+                            <tr>
+                                @if (_editingPartId == part.PartId)
+                                {
+                                    <td><InputText class="form-control" @bind-Value="_editPartModel.PartName" /></td>
+                                    <td>
+                                        <InputSelect class="form-control" @bind-Value="_editPartModel.CategoryId">
+                                            @foreach (var category in _categories)
+                                            {
+                                                <option value="@category.CategoryId">@category.CategoryName</option>
+                                            }
+                                        </InputSelect>
+                                    </td>
+                                    <td><InputNumber class="form-control" @bind-Value="_editPartModel.SellingPrice" /></td>
+                                    <td><InputNumber class="form-control" @bind-Value="_editPartModel.QuantityOnHand" /></td>
+                                    <td>
+                                        <InputSelect class="form-control role-select" @bind-Value="_editPartModel.IsActive">
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </InputSelect>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td>@part.PartName</td>
+                                    <td>@part.CategoryName</td>
+                                    <td>@part.SellingPrice</td>
+                                    <td>@part.QuantityOnHand</td>
+                                    <td><span class="role-pill">@(part.IsActive ? "Active" : "Inactive")</span></td>
+                                }
+                                <td>
+                                    <div class="manage-actions">
+                                        @if (_editingPartId == part.PartId)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" disabled="@IsPartActionBusy(part.PartId)" @onclick="() => SavePartEdit(part.PartId)">
+                                                @(IsPartActionBusy(part.PartId) ? "Saving..." : "Save")
+                                            </button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelPartEdit">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => StartPartEdit(part)">Edit</button>
+                                        }
+
+                                        @if (_pendingDeletePartId == part.PartId)
+                                        {
+                                            <button class="btn btn-sm btn-danger" disabled="@IsPartActionBusy(part.PartId)" @onclick="() => DeletePart(part.PartId)">
+                                                Confirm Delete
+                                            </button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelPartDelete">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => AskPartDelete(part.PartId)">Delete</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<AdminPartDto> _parts = [];
+    private readonly List<AdminPartCategoryDto> _categories = [];
+    private AdminCreatePartRequestDto _createPartModel = new();
+    private AdminUpdatePartRequestDto _editPartModel = new();
+
+    private bool _isCreatingPart;
+    private bool _isLoadingParts;
+    private bool _isCategoryModalOpen;
+    private bool _isSavingCategory;
+    private int? _activePartActionId;
+    private int? _editingPartId;
+    private int? _pendingDeletePartId;
+    private int? _editingCategoryId;
+    private string _searchTerm = string.Empty;
+    private string _partMessage = string.Empty;
+    private bool _partSuccess;
+    private string _categoryMessage = string.Empty;
+    private bool _categorySuccess;
+    private string _editCategoryName = string.Empty;
+    private AdminCreatePartCategoryRequestDto _createCategoryModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser?.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadCategories();
+        await LoadParts();
+    }
+
+    private async Task LoadCategories()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        var categories = await AuthApiService.GetPartCategoriesAsync(AuthStateService.CurrentUser.Token);
+        _categories.Clear();
+        _categories.AddRange(categories);
+    }
+
+    private void OpenCategoryModal()
+    {
+        _isCategoryModalOpen = true;
+        _categoryMessage = string.Empty;
+        _editingCategoryId = null;
+    }
+
+    private void CloseCategoryModal()
+    {
+        _isCategoryModalOpen = false;
+    }
+
+    private async Task CreateCategory()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isSavingCategory = true;
+        _categoryMessage = string.Empty;
+        _categorySuccess = false;
+
+        var success = await AuthApiService.CreatePartCategoryAsync(_createCategoryModel, AuthStateService.CurrentUser.Token);
+        _isSavingCategory = false;
+
+        if (!success)
+        {
+            _categoryMessage = "Failed to create category.";
+            return;
+        }
+
+        _categorySuccess = true;
+        _categoryMessage = "Category created.";
+        _createCategoryModel = new AdminCreatePartCategoryRequestDto();
+        await LoadCategories();
+    }
+
+    private void StartCategoryEdit(AdminPartCategoryDto category)
+    {
+        _editingCategoryId = category.CategoryId;
+        _editCategoryName = category.CategoryName;
+    }
+
+    private void CancelCategoryEdit()
+    {
+        _editingCategoryId = null;
+        _editCategoryName = string.Empty;
+    }
+
+    private async Task SaveCategoryEdit(int categoryId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        var success = await AuthApiService.UpdatePartCategoryAsync(categoryId, _editCategoryName, AuthStateService.CurrentUser.Token);
+        _categorySuccess = success;
+        _categoryMessage = success ? "Category updated." : "Failed to update category.";
+        _editingCategoryId = null;
+        await LoadCategories();
+        await LoadParts();
+    }
+
+    private async Task DeleteCategory(int categoryId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        var success = await AuthApiService.DeletePartCategoryAsync(categoryId, AuthStateService.CurrentUser.Token);
+        _categorySuccess = success;
+        _categoryMessage = success ? "Category deleted." : "Failed to delete category (might be used by parts).";
+        await LoadCategories();
+        await LoadParts();
+    }
+
+    private async Task LoadParts()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isLoadingParts = true;
+        var parts = await AuthApiService.GetAdminPartsAsync(AuthStateService.CurrentUser.Token);
+        _parts.Clear();
+        _parts.AddRange(parts);
+        _isLoadingParts = false;
+    }
+
+    private async Task CreatePart()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isCreatingPart = true;
+        _partMessage = string.Empty;
+        _partSuccess = false;
+
+        var success = await AuthApiService.CreatePartByAdminAsync(_createPartModel, AuthStateService.CurrentUser.Token);
+        _isCreatingPart = false;
+
+        if (!success)
+        {
+            _partMessage = "Failed to create part. Check input values.";
+            return;
+        }
+
+        _partSuccess = true;
+        _partMessage = "Part created successfully.";
+        _createPartModel = new AdminCreatePartRequestDto();
+        await LoadParts();
+    }
+
+    private void StartPartEdit(AdminPartDto part)
+    {
+        _editingPartId = part.PartId;
+        _editPartModel = new AdminUpdatePartRequestDto
+        {
+            CategoryId = part.CategoryId,
+            PartName = part.PartName,
+            Description = part.Description,
+            SellingPrice = part.SellingPrice,
+            ReorderLevel = part.ReorderLevel,
+            IsActive = part.IsActive,
+            QuantityOnHand = part.QuantityOnHand
+        };
+    }
+
+    private void CancelPartEdit()
+    {
+        _editingPartId = null;
+    }
+
+    private async Task SavePartEdit(int partId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activePartActionId = partId;
+        _partMessage = string.Empty;
+        _partSuccess = false;
+
+        var success = await AuthApiService.UpdatePartAsync(partId, _editPartModel, AuthStateService.CurrentUser.Token);
+        _activePartActionId = null;
+        _editingPartId = null;
+        _partSuccess = success;
+        _partMessage = success ? "Part updated." : "Failed to update part.";
+        await LoadParts();
+    }
+
+    private async Task DeletePart(int partId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activePartActionId = partId;
+        _partMessage = string.Empty;
+        _partSuccess = false;
+
+        var success = await AuthApiService.DeletePartAsync(partId, AuthStateService.CurrentUser.Token);
+        _activePartActionId = null;
+        _pendingDeletePartId = null;
+        _partSuccess = success;
+        _partMessage = success ? "Part deleted." : "Failed to delete part.";
+        await LoadParts();
+    }
+
+    private List<AdminPartDto> GetVisibleParts()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            return _parts;
+        }
+
+        var keyword = _searchTerm.Trim().ToLowerInvariant();
+        return _parts.Where(x => x.PartName.ToLowerInvariant().Contains(keyword)).ToList();
+    }
+
+    private void AskPartDelete(int partId)
+    {
+        _pendingDeletePartId = partId;
+    }
+
+    private void CancelPartDelete()
+    {
+        _pendingDeletePartId = null;
+    }
+
+    private bool IsPartActionBusy(int partId)
+    {
+        return _activePartActionId == partId;
+    }
+
+    private string GetFeedbackClass(bool isSuccess)
+    {
+        return isSuccess ? "status-alert success" : "status-alert error";
+    }
+}

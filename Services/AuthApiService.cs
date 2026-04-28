@@ -132,4 +132,101 @@ public class AuthApiService
         var response = await _httpClient.SendAsync(request);
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<List<AdminPartDto>> GetAdminPartsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/parts");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var parts = await response.Content.ReadFromJsonAsync<List<AdminPartDto>>();
+        return parts ?? [];
+    }
+
+    public async Task<List<AdminPartCategoryDto>> GetPartCategoriesAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/parts/categories");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var categories = await response.Content.ReadFromJsonAsync<List<AdminPartCategoryDto>>();
+        return categories ?? [];
+    }
+
+    public async Task<bool> CreatePartByAdminAsync(AdminCreatePartRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/parts")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> UpdatePartAsync(int partId, AdminUpdatePartRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/admin/parts/{partId}")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeletePartAsync(int partId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/admin/parts/{partId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> CreatePartCategoryAsync(AdminCreatePartCategoryRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/parts/categories")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> UpdatePartCategoryAsync(int categoryId, string categoryName, string token)
+    {
+        var requestModel = new AdminUpdatePartCategoryRequestDto { CategoryName = categoryName };
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/admin/parts/categories/{categoryId}")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeletePartCategoryAsync(int categoryId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/admin/parts/categories/{categoryId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
 }
