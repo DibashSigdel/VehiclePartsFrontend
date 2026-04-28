@@ -1,0 +1,108 @@
+@page "/staff/customers/register"
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Staff Register Customer</PageTitle>
+
+<section class="dashboard-card">
+    <h1>Register Customer with Vehicle</h1>
+    <p class="subtitle">Staff can create customer account and vehicle in one step.</p>
+
+    <EditForm Model="_model" OnValidSubmit="RegisterCustomer" FormName="StaffCustomerRegisterForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <h3 class="mb-3">Customer Details</h3>
+        <div class="mb-3">
+            <label>Name</label>
+            <InputText class="form-control" @bind-Value="_model.Name" />
+        </div>
+        <div class="mb-3">
+            <label>Email</label>
+            <InputText class="form-control" @bind-Value="_model.Email" />
+        </div>
+        <div class="mb-3">
+            <label>Phone</label>
+            <InputText class="form-control" @bind-Value="_model.Phone" />
+        </div>
+        <div class="mb-3">
+            <label>Password</label>
+            <InputText class="form-control" type="password" @bind-Value="_model.Password" />
+        </div>
+        <div class="mb-3">
+            <label>Address</label>
+            <InputText class="form-control" @bind-Value="_model.Address" />
+        </div>
+
+        <h3 class="mb-3 mt-4">Vehicle Details</h3>
+        <div class="mb-3">
+            <label>Vehicle Number</label>
+            <InputText class="form-control" @bind-Value="_model.VehicleNumber" />
+        </div>
+        <div class="mb-3">
+            <label>Brand</label>
+            <InputText class="form-control" @bind-Value="_model.Brand" />
+        </div>
+        <div class="mb-3">
+            <label>Model</label>
+            <InputText class="form-control" @bind-Value="_model.Model" />
+        </div>
+        <div class="mb-3">
+            <label>Year</label>
+            <InputNumber class="form-control" @bind-Value="_model.Year" />
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit" disabled="@_isSaving">
+            @(_isSaving ? "Registering..." : "Register Customer + Vehicle")
+        </button>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="@(_success ? "status-alert success" : "status-alert error")">
+            @_message
+        </div>
+    }
+</section>
+
+@code {
+    private StaffRegisterCustomerRequestDto _model = new();
+    private bool _isSaving;
+    private string _message = string.Empty;
+    private bool _success;
+
+    protected override void OnInitialized()
+    {
+        var role = AuthStateService.CurrentUser?.Role;
+        if (!AuthStateService.IsLoggedIn || (role != "Staff" && role != "Admin"))
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private async Task RegisterCustomer()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _message = string.Empty;
+        _success = false;
+
+        var result = await AuthApiService.RegisterCustomerWithVehicleByStaffAsync(_model, AuthStateService.CurrentUser.Token);
+        _isSaving = false;
+
+        if (result is null)
+        {
+            _message = "Failed to register customer. Check email or vehicle number.";
+            return;
+        }
+
+        _success = true;
+        _message = $"Customer registered. Vehicle: {result.VehicleNumber}";
+        _model = new StaffRegisterCustomerRequestDto();
+    }
+}

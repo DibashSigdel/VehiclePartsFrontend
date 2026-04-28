@@ -13,7 +13,7 @@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
+    <nav class="flex-column nav-list">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Dashboard
@@ -45,6 +45,15 @@
             </div>
         }
 
+        @if (AuthStateService.IsLoggedIn && (AuthStateService.CurrentUser?.Role == "Staff" || AuthStateService.CurrentUser?.Role == "Admin"))
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="staff/customers/register">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register Customer
+                </NavLink>
+            </div>
+        }
+
         @if (!AuthStateService.IsLoggedIn)
         {
             <div class="nav-item px-3">
@@ -63,7 +72,7 @@
                 </span>
             </div>
             <div class="nav-item px-3">
-                <button class="btn btn-link nav-link" @onclick="Logout">Logout</button>
+                <button class="nav-link nav-action-btn" @onclick="Logout">Logout</button>
             </div>
         }
     </nav>

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using VehiclePartsFrontend.Models.Admin;
 using VehiclePartsFrontend.Models.Auth;
+using VehiclePartsFrontend.Models.Staff;
 
 namespace VehiclePartsFrontend.Services;
 
@@ -228,5 +229,22 @@ public class AuthApiService
 
         var response = await _httpClient.SendAsync(request);
         return response.IsSuccessStatusCode;
+    }
+
+    public async Task<StaffCustomerWithVehicleResponseDto?> RegisterCustomerWithVehicleByStaffAsync(StaffRegisterCustomerRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/staff/customers/register-with-vehicle")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<StaffCustomerWithVehicleResponseDto>();
     }
 }
