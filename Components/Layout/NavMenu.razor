@@ -20,11 +20,14 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="register">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register User
-            </NavLink>
-        </div>
+        @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Admin")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="register">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register User
+                </NavLink>
+            </div>
+        }
 
         @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Admin")
         {
@@ -54,8 +57,22 @@
             </div>
         }
 
+        @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Customer")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="customer/profile">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My Profile
+                </NavLink>
+            </div>
+        }
+
         @if (!AuthStateService.IsLoggedIn)
         {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="customer/register">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Customer Register
+                </NavLink>
+            </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="login">
                     <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Login

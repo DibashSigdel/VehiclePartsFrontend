@@ -1,15 +1,15 @@
-@page "/register"
+@page "/customer/register"
 @inject AuthApiService AuthApiService
 @inject AuthStateService AuthStateService
 @inject NavigationManager NavigationManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Customer Registration</PageTitle>
 
 <section class="auth-card">
-    <h1>Register User</h1>
-    <p class="subtitle">Create a new user account in the system.</p>
+    <h1>Customer Self Registration</h1>
+    <p class="subtitle">Create your customer account to track and manage your details.</p>
 
-    <EditForm Model="_model" OnValidSubmit="HandleRegister" FormName="RegisterForm">
+    <EditForm Model="_model" OnValidSubmit="HandleRegister" FormName="CustomerRegisterForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -34,21 +34,12 @@
         </div>
 
         <div class="mb-3">
-            <label>Role</label>
-            <InputSelect class="form-control" @bind-Value="_model.Role">
-                <option value="Admin">Admin</option>
-                <option value="Staff">Staff</option>
-                <option value="Customer">Customer</option>
-            </InputSelect>
-        </div>
-
-        <div class="mb-3">
             <label>Address</label>
             <InputText class="form-control" @bind-Value="_model.Address" />
         </div>
 
         <button class="btn btn-success w-100" type="submit" disabled="@_isLoading">
-            @(_isLoading ? "Registering..." : "Register")
+            @(_isLoading ? "Registering..." : "Create Customer Account")
         </button>
     </EditForm>
 
@@ -59,13 +50,13 @@
 </section>
 
 @code {
-    private readonly RegisterRequestDto _model = new();
+    private readonly CustomerSelfRegisterRequestDto _model = new();
     private bool _isLoading;
     private string _message = string.Empty;
 
     protected override void OnInitialized()
     {
-        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser?.Role != "Admin")
+        if (AuthStateService.IsLoggedIn)
         {
             NavigationManager.NavigateTo("/");
         }
@@ -76,16 +67,16 @@
         _isLoading = true;
         _message = string.Empty;
 
-        var response = await AuthApiService.RegisterAsync(_model);
+        var success = await AuthApiService.RegisterCustomerSelfAsync(_model);
         _isLoading = false;
 
-        if (response is null)
+        if (!success)
         {
-            _message = "Registration failed. Check inputs or use another email.";
+            _message = "Registration failed. Please verify your details and use a unique email.";
             return;
         }
 
-        _message = "Registered successfully. Please login with your new account.";
+        _message = "Customer account created successfully. Please login.";
         NavigationManager.NavigateTo("/login");
     }
 }

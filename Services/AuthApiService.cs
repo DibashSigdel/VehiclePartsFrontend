@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using VehiclePartsFrontend.Models.Admin;
 using VehiclePartsFrontend.Models.Auth;
+using VehiclePartsFrontend.Models.Customer;
 using VehiclePartsFrontend.Models.Staff;
 
 namespace VehiclePartsFrontend.Services;
@@ -246,5 +247,37 @@ public class AuthApiService
         }
 
         return await response.Content.ReadFromJsonAsync<StaffCustomerWithVehicleResponseDto>();
+    }
+
+    public async Task<bool> RegisterCustomerSelfAsync(CustomerSelfRegisterRequestDto requestModel)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/customers/self-register", requestModel);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<CustomerProfileDto?> GetCustomerProfileAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customers/profile");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<CustomerProfileDto>();
+    }
+
+    public async Task<bool> UpdateCustomerProfileAsync(CustomerUpdateProfileRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, "api/customers/profile")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
     }
 }
