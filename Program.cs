@@ -1,10 +1,18 @@
 using VehiclePartsFrontend.Components;
+using VehiclePartsFrontend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+var backendBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5041/";
+builder.Services.AddHttpClient<AuthApiService>(client =>
+{
+    client.BaseAddress = new Uri(backendBaseUrl);
+});
+builder.Services.AddScoped<AuthStateService>();
 
 var app = builder.Build();
 

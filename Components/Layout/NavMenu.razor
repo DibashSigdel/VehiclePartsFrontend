@@ -1,4 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject AuthStateService AuthStateService
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">VehiclePartsFrontend</a>
     </div>
@@ -25,6 +28,52 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
             </NavLink>
         </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="register">
+                Register
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="login">
+                Login
+            </NavLink>
+        </div>
+
+        @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
+        {
+            <div class="nav-item px-3">
+                <span class="nav-link">
+                    @AuthStateService.CurrentUser.Name (@AuthStateService.CurrentUser.Role)
+                </span>
+            </div>
+            <div class="nav-item px-3">
+                <button class="btn btn-link nav-link" @onclick="Logout">Logout</button>
+            </div>
+        }
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthStateService.StateChanged += HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Logout()
+    {
+        AuthStateService.Logout();
+    }
+
+    public void Dispose()
+    {
+        AuthStateService.StateChanged -= HandleStateChanged;
+    }
+}
 

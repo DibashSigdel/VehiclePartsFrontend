@@ -1,7 +1,17 @@
 ﻿@page "/"
+@inject AuthStateService AuthStateService
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Vehicle Parts System</h1>
 
-Welcome to your new app.
+<p>Frontend is connected to backend auth APIs.</p>
+
+@if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
+{
+    <p>Logged in as: <strong>@AuthStateService.CurrentUser.Name</strong> (@AuthStateService.CurrentUser.Role)</p>
+}
+else
+{
+    <p>Please use Register or Login from the left menu.</p>
+}
