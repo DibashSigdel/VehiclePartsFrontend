@@ -1,0 +1,320 @@
+@page "/admin/vendors"
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Admin Vendors</PageTitle>
+
+<section class="admin-page-head">
+    <div>
+        <h1 class="admin-page-title">Vendor Administration</h1>
+        <p class="subtitle">Create, update, and delete vendor details.</p>
+    </div>
+    <div class="admin-stats">
+        <div class="stat-chip">Total: @_vendors.Count</div>
+        <div class="stat-chip">Active: @_vendors.Count(x => x.IsActive)</div>
+        <div class="stat-chip">Inactive: @_vendors.Count(x => !x.IsActive)</div>
+    </div>
+</section>
+
+<section class="admin-users-layout">
+    <div class="dashboard-card admin-form-panel">
+        <h2>Create Vendor</h2>
+        <p class="subtitle">Add vendor details for procurement and purchase flow.</p>
+
+        <EditForm Model="_createVendorModel" OnValidSubmit="CreateVendor" FormName="AdminCreateVendorForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label>Vendor Name</label>
+                <InputText class="form-control" @bind-Value="_createVendorModel.VendorName" />
+            </div>
+
+            <div class="mb-3">
+                <label>Vendor Phone</label>
+                <InputText class="form-control" @bind-Value="_createVendorModel.VendorPhone" />
+            </div>
+
+            <div class="mb-3">
+                <label>Vendor Email</label>
+                <InputText class="form-control" @bind-Value="_createVendorModel.VendorEmail" />
+            </div>
+
+            <div class="mb-3">
+                <label>Vendor Address</label>
+                <InputText class="form-control" @bind-Value="_createVendorModel.VendorAddress" />
+            </div>
+
+            <div class="mb-3">
+                <label>Status</label>
+                <InputSelect class="form-control" @bind-Value="_createVendorModel.IsActive">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </InputSelect>
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit" disabled="@_isCreatingVendor">
+                @(_isCreatingVendor ? "Creating..." : "Create Vendor")
+            </button>
+        </EditForm>
+
+        @if (!string.IsNullOrWhiteSpace(_vendorMessage))
+        {
+            <div class="@GetFeedbackClass(_vendorSuccess)">
+                @_vendorMessage
+            </div>
+        }
+    </div>
+
+    <div class="dashboard-card admin-table-panel">
+        <div class="table-head-row">
+            <h2>All Vendors</h2>
+            <InputText class="form-control table-search" @bind-Value="_searchTerm" placeholder="Search by name or email..." />
+        </div>
+
+        @if (_isLoadingVendors)
+        {
+            <p>Loading vendors...</p>
+        }
+        else if (GetVisibleVendors().Count == 0)
+        {
+            <p>No vendors found.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                            <th>Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var vendor in GetVisibleVendors())
+                        {
+                            <tr>
+                                @if (_editingVendorId == vendor.VendorId)
+                                {
+                                    <td>
+                                        <InputText class="form-control" @bind-Value="_editVendorModel.VendorName" />
+                                    </td>
+                                    <td>
+                                        <InputText class="form-control" @bind-Value="_editVendorModel.VendorPhone" />
+                                    </td>
+                                    <td>
+                                        <InputText class="form-control" @bind-Value="_editVendorModel.VendorEmail" />
+                                    </td>
+                                    <td>
+                                        <InputText class="form-control" @bind-Value="_editVendorModel.VendorAddress" />
+                                    </td>
+                                    <td>
+                                        <InputSelect class="form-control role-select" @bind-Value="_editVendorModel.IsActive">
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </InputSelect>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td>@vendor.VendorName</td>
+                                    <td>@vendor.VendorPhone</td>
+                                    <td>@vendor.VendorEmail</td>
+                                    <td>@vendor.VendorAddress</td>
+                                    <td>
+                                        <span class="role-pill">@(vendor.IsActive ? "Active" : "Inactive")</span>
+                                    </td>
+                                }
+                                <td>
+                                    <div class="manage-actions">
+                                        @if (_editingVendorId == vendor.VendorId)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" disabled="@IsVendorActionBusy(vendor.VendorId)" @onclick="() => SaveVendorEdit(vendor.VendorId)">
+                                                @(IsVendorActionBusy(vendor.VendorId) ? "Saving..." : "Save")
+                                            </button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelVendorEdit">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => StartVendorEdit(vendor)">Edit</button>
+                                        }
+
+                                        @if (_pendingDeleteVendorId == vendor.VendorId)
+                                        {
+                                            <button class="btn btn-sm btn-danger" disabled="@IsVendorActionBusy(vendor.VendorId)" @onclick="() => DeleteVendor(vendor)">
+                                                Confirm Delete
+                                            </button>
+                                            <button class="btn btn-sm btn-light" @onclick="CancelVendorDelete">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => AskVendorDelete(vendor.VendorId)">Delete</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private readonly List<AdminVendorDto> _vendors = [];
+    private AdminCreateVendorRequestDto _createVendorModel = new();
+    private bool _isCreatingVendor;
+    private bool _isLoadingVendors;
+    private int? _activeVendorActionId;
+    private int? _editingVendorId;
+    private int? _pendingDeleteVendorId;
+    private AdminUpdateVendorRequestDto _editVendorModel = new();
+    private string _searchTerm = string.Empty;
+    private string _vendorMessage = string.Empty;
+    private bool _vendorSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser?.Role != "Admin")
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadVendors();
+    }
+
+    private async Task LoadVendors()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isLoadingVendors = true;
+        var vendors = await AuthApiService.GetAdminVendorsAsync(AuthStateService.CurrentUser.Token);
+        _vendors.Clear();
+        _vendors.AddRange(vendors);
+        _isLoadingVendors = false;
+    }
+
+    private async Task CreateVendor()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isCreatingVendor = true;
+        _vendorMessage = string.Empty;
+        _vendorSuccess = false;
+
+        var success = await AuthApiService.CreateVendorByAdminAsync(_createVendorModel, AuthStateService.CurrentUser.Token);
+        _isCreatingVendor = false;
+
+        if (!success)
+        {
+            _vendorMessage = "Failed to create vendor. Check input values.";
+            return;
+        }
+
+        _vendorSuccess = true;
+        _vendorMessage = "Vendor created successfully.";
+        _createVendorModel = new AdminCreateVendorRequestDto();
+        await LoadVendors();
+    }
+
+    private void StartVendorEdit(AdminVendorDto vendor)
+    {
+        _editingVendorId = vendor.VendorId;
+        _editVendorModel = new AdminUpdateVendorRequestDto
+        {
+            VendorName = vendor.VendorName,
+            VendorPhone = vendor.VendorPhone,
+            VendorEmail = vendor.VendorEmail,
+            VendorAddress = vendor.VendorAddress,
+            IsActive = vendor.IsActive
+        };
+    }
+
+    private void CancelVendorEdit()
+    {
+        _editingVendorId = null;
+    }
+
+    private async Task SaveVendorEdit(int vendorId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activeVendorActionId = vendorId;
+        _vendorMessage = string.Empty;
+        _vendorSuccess = false;
+        var success = await AuthApiService.UpdateVendorAsync(vendorId, _editVendorModel, AuthStateService.CurrentUser.Token);
+        _activeVendorActionId = null;
+        _editingVendorId = null;
+        _vendorSuccess = success;
+        _vendorMessage = success ? "Vendor updated." : "Failed to update vendor.";
+        await LoadVendors();
+    }
+
+    private async Task DeleteVendor(AdminVendorDto vendor)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _activeVendorActionId = vendor.VendorId;
+        _vendorMessage = string.Empty;
+        _vendorSuccess = false;
+
+        var success = await AuthApiService.DeleteVendorAsync(vendor.VendorId, AuthStateService.CurrentUser.Token);
+        _activeVendorActionId = null;
+        _pendingDeleteVendorId = null;
+        _vendorSuccess = success;
+        _vendorMessage = success ? "Vendor deleted." : "Failed to delete vendor.";
+        await LoadVendors();
+    }
+
+    private List<AdminVendorDto> GetVisibleVendors()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            return _vendors;
+        }
+
+        var keyword = _searchTerm.Trim().ToLowerInvariant();
+        return _vendors
+            .Where(x => x.VendorName.ToLowerInvariant().Contains(keyword) || x.VendorEmail.ToLowerInvariant().Contains(keyword))
+            .ToList();
+    }
+
+    private void AskVendorDelete(int vendorId)
+    {
+        _pendingDeleteVendorId = vendorId;
+    }
+
+    private void CancelVendorDelete()
+    {
+        _pendingDeleteVendorId = null;
+    }
+
+    private bool IsVendorActionBusy(int vendorId)
+    {
+        return _activeVendorActionId == vendorId;
+    }
+
+    private string GetFeedbackClass(bool isSuccess)
+    {
+        return isSuccess ? "status-alert success" : "status-alert error";
+    }
+}

@@ -84,4 +84,52 @@ public class AuthApiService
         var response = await _httpClient.SendAsync(request);
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<List<AdminVendorDto>> GetAdminVendorsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/vendors");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        var vendors = await response.Content.ReadFromJsonAsync<List<AdminVendorDto>>();
+        return vendors ?? [];
+    }
+
+    public async Task<bool> CreateVendorByAdminAsync(AdminCreateVendorRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/vendors")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> UpdateVendorAsync(int vendorId, AdminUpdateVendorRequestDto requestModel, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/admin/vendors/{vendorId}")
+        {
+            Content = JsonContent.Create(requestModel)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeleteVendorAsync(int vendorId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/admin/vendors/{vendorId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
 }
