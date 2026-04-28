@@ -3,15 +3,20 @@
 
 <PageTitle>Home</PageTitle>
 
-<h1>Vehicle Parts System</h1>
+<section class="dashboard-card">
+    <h1>Vehicle Parts System</h1>
+    <p class="subtitle">Simple management portal for users, staff, and admin operations.</p>
 
-<p>Frontend is connected to backend auth APIs.</p>
-
-@if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
-{
-    <p>Logged in as: <strong>@AuthStateService.CurrentUser.Name</strong> (@AuthStateService.CurrentUser.Role)</p>
-}
-else
-{
-    <p>Please use Register or Login from the left menu.</p>
-}
+    @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
+    {
+        <div class="status-chip success">
+            Signed in as @AuthStateService.CurrentUser.Name (@AuthStateService.CurrentUser.Role)
+        </div>
+    }
+    else
+    {
+        <div class="status-chip neutral">
+            You are not logged in. Use Register or Login from the menu.
+        </div>
+    }
+</section>
