@@ -46,10 +46,20 @@
                     <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Manage Parts
                 </NavLink>
             </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/purchase-invoices">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Purchase invoices
+                </NavLink>
+            </div>
         }
 
         @if (AuthStateService.IsLoggedIn && (AuthStateService.CurrentUser?.Role == "Staff" || AuthStateService.CurrentUser?.Role == "Admin"))
         {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="staff/sales-invoices">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Sales invoices
+                </NavLink>
+            </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="staff/customers/register">
                     <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register Customer

@@ -1,0 +1,316 @@
+@page "/staff/sales-invoices"
+@rendermode InteractiveServer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Sales invoices</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Staff" && AuthStateService.CurrentUser?.Role != "Admin")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Staff or admin access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">Sales invoices (stock out)</h1>
+            <p class="subtitle">Sell parts to a customer. Stock is reduced when the invoice is saved.</p>
+        </div>
+    </section>
+
+    <div class="admin-users-layout">
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">New sales invoice</h2>
+
+            <div class="mb-3">
+                <label class="form-label">Customer</label>
+                <InputSelect class="form-control" TValue="int" @bind-Value="_customerId">
+                    <option value="0">Select customer…</option>
+                    @foreach (var c in _customers)
+                    {
+                        <option value="@c.UserId">@c.Name (@c.Email)</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Invoice date</label>
+                <InputDate class="form-control" TValue="DateTime?" @bind-Value="_invoiceDate" />
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Payment type</label>
+                    <InputSelect class="form-control" TValue="string" @bind-Value="_paymentType">
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="Bank transfer">Bank transfer</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Payment status</label>
+                    <InputSelect class="form-control" TValue="string" @bind-Value="_paymentStatus">
+                        <option value="Paid">Paid</option>
+                        <option value="Pending">Pending (credit)</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Discount</label>
+                    <InputNumber class="form-control" TValue="decimal" @bind-Value="_discount" />
+                </div>
+            </div>
+
+            @if (_paymentStatus == "Pending")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Credit due date</label>
+                    <InputDate class="form-control" TValue="DateTime?" @bind-Value="_creditDueDate" />
+                </div>
+            }
+
+            <h3 class="h6 mt-4">Line items</h3>
+            @for (var i = 0; i < _lines.Count; i++)
+            {
+                var index = i;
+                <div class="border rounded p-3 mb-3" @key="_lines[index].RowKey">
+                    <div class="mb-2">
+                        <label class="form-label">Part</label>
+                        <select class="form-control" value="@_lines[index].PartId" @onchange="@(e => OnPartHtmlChange(index, e))">
+                            <option value="0">Select part…</option>
+                            @foreach (var p in _parts)
+                            {
+                                <option value="@p.PartId">@p.PartName — stock @p.QuantityOnHand — list @p.SellingPrice.ToString("N2")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Unit price</label>
+                            <InputNumber class="form-control" TValue="decimal" @bind-Value="_lines[index].UnitPrice" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quantity</label>
+                            <InputNumber class="form-control" TValue="int" @bind-Value="_lines[index].Quantity" />
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            @if (_lines.Count > 1)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="@(() => RemoveLine(index))">Remove line</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" @onclick="AddLine">+ Add line</button>
+
+            <button class="btn btn-success" type="button" disabled="@_isSaving" @onclick="SubmitSale">
+                @(_isSaving ? "Saving…" : "Save sale & reduce stock")
+            </button>
+
+            @if (!string.IsNullOrEmpty(_loadError))
+            {
+                <p class="mt-3 status-alert error">@_loadError</p>
+            }
+
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <p class="mt-3 status-text">@_message</p>
+            }
+        </section>
+
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">Recent sales</h2>
+            @if (_isLoadingList)
+            {
+                <p class="status-text">Loading…</p>
+            }
+            else if (_recent.Count == 0)
+            {
+                <p class="subtitle">No sales yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Payment</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in _recent)
+                            {
+                                <tr>
+                                    <td>@row.InvoiceDate.ToLocalTime().ToString("g")</td>
+                                    <td>@row.CustomerName</td>
+                                    <td>@row.PaymentType / @row.PaymentStatus</td>
+                                    <td class="text-end">@row.TotalAmount.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private readonly List<SalesLineVm> _lines = [new()];
+    private List<StaffCustomerOptionDto> _customers = [];
+    private List<StaffPartSaleOptionDto> _parts = [];
+    private List<StaffSalesInvoiceListItemDto> _recent = [];
+
+    private int _customerId;
+    /// <summary>Use local calendar date — avoids InputDate / UTC Kind fights that can destabilize the Blazor circuit.</summary>
+    private DateTime? _invoiceDate = DateTime.Today;
+    private string _paymentType = "Cash";
+    private string _paymentStatus = "Paid";
+    private decimal _discount;
+    private DateTime? _creditDueDate;
+
+    private bool _isSaving;
+    private bool _isLoadingList = true;
+    private string _message = string.Empty;
+    private string _loadError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateService.CurrentUser?.Role is not ("Staff" or "Admin") || string.IsNullOrEmpty(AuthStateService.CurrentUser.Token))
+        {
+            _isLoadingList = false;
+            return;
+        }
+
+        try
+        {
+            var token = AuthStateService.CurrentUser.Token;
+            _customers = await AuthApiService.GetStaffSalesCustomersAsync(token);
+            _parts = await AuthApiService.GetStaffSalesPartsAsync(token);
+            _recent = await AuthApiService.GetStaffSalesInvoicesAsync(token);
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Could not load data: {ex.Message}";
+        }
+        finally
+        {
+            _isLoadingList = false;
+        }
+    }
+
+    private void AddLine() => _lines.Add(new SalesLineVm());
+
+    private void RemoveLine(int index)
+    {
+        if (index >= 0 && index < _lines.Count && _lines.Count > 1)
+        {
+            _lines.RemoveAt(index);
+        }
+    }
+
+    private void OnPartHtmlChange(int index, ChangeEventArgs e)
+    {
+        if (e.Value is null || !int.TryParse(e.Value.ToString(), out var partId))
+        {
+            return;
+        }
+
+        OnPartPicked(index, partId);
+    }
+
+    private void OnPartPicked(int index, int partId)
+    {
+        if (index < 0 || index >= _lines.Count)
+        {
+            return;
+        }
+
+        _lines[index].PartId = partId;
+        var p = _parts.FirstOrDefault(x => x.PartId == partId);
+        if (p is not null)
+        {
+            _lines[index].UnitPrice = p.SellingPrice;
+        }
+    }
+
+    private async Task SubmitSale()
+    {
+        _message = string.Empty;
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        if (_customerId == 0)
+        {
+            _message = "Select a customer.";
+            return;
+        }
+
+        var items = _lines
+            .Where(x => x.PartId > 0 && x.Quantity > 0 && x.UnitPrice >= 0)
+            .Select(x => new StaffSalesInvoiceLineRequestDto
+            {
+                PartId = x.PartId,
+                Quantity = x.Quantity,
+                UnitPrice = x.UnitPrice
+            })
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            _message = "Add at least one valid line.";
+            return;
+        }
+
+        _isSaving = true;
+        var req = new StaffCreateSalesInvoiceRequestDto
+        {
+            CustomerId = _customerId,
+            InvoiceDate = _invoiceDate,
+            PaymentType = _paymentType,
+            PaymentStatus = _paymentStatus,
+            CreditDueDate = _paymentStatus == "Pending" ? _creditDueDate : null,
+            DiscountAmount = _discount,
+            Items = items
+        };
+
+        var result = await AuthApiService.CreateStaffSalesInvoiceAsync(req, AuthStateService.CurrentUser.Token);
+        _isSaving = false;
+
+        if (result is null)
+        {
+            _message = "Could not save sale. Check stock and inputs.";
+            return;
+        }
+
+        _message = $"Invoice #{result.SalesInvoiceId} saved. Total {result.TotalAmount:N2}.";
+        _recent = await AuthApiService.GetStaffSalesInvoicesAsync(AuthStateService.CurrentUser.Token);
+        _parts = await AuthApiService.GetStaffSalesPartsAsync(AuthStateService.CurrentUser.Token);
+
+        _customerId = 0;
+        _invoiceDate = DateTime.Today;
+        _paymentType = "Cash";
+        _paymentStatus = "Paid";
+        _discount = 0;
+        _creditDueDate = null;
+        _lines.Clear();
+        _lines.Add(new SalesLineVm());
+    }
+
+    private sealed class SalesLineVm
+    {
+        public Guid RowKey { get; } = Guid.NewGuid();
+        public int PartId { get; set; }
+        public decimal UnitPrice { get; set; }
+        public int Quantity { get; set; } = 1;
+    }
+}

@@ -280,4 +280,88 @@ public class AuthApiService
         var response = await _httpClient.SendAsync(request);
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<List<AdminPurchaseInvoiceListItemDto>> GetAdminPurchaseInvoicesAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/purchase-invoices");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<AdminPurchaseInvoiceListItemDto>>() ?? [];
+    }
+
+    public async Task<AdminPurchaseInvoiceResponseDto?> CreateAdminPurchaseInvoiceAsync(AdminCreatePurchaseInvoiceRequestDto body, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/purchase-invoices")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<AdminPurchaseInvoiceResponseDto>();
+    }
+
+    public async Task<List<StaffCustomerOptionDto>> GetStaffSalesCustomersAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/staff/sales-invoices/customers");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<StaffCustomerOptionDto>>() ?? [];
+    }
+
+    public async Task<List<StaffPartSaleOptionDto>> GetStaffSalesPartsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/staff/sales-invoices/parts");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<StaffPartSaleOptionDto>>() ?? [];
+    }
+
+    public async Task<List<StaffSalesInvoiceListItemDto>> GetStaffSalesInvoicesAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/staff/sales-invoices");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return [];
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<StaffSalesInvoiceListItemDto>>() ?? [];
+    }
+
+    public async Task<StaffSalesInvoiceResponseDto?> CreateStaffSalesInvoiceAsync(StaffCreateSalesInvoiceRequestDto body, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/staff/sales-invoices")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<StaffSalesInvoiceResponseDto>();
+    }
 }

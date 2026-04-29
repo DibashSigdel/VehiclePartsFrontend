@@ -1,0 +1,258 @@
+@page "/admin/purchase-invoices"
+@rendermode InteractiveServer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Purchase invoices</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Admin")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Admin access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">Purchase invoices (stock in)</h1>
+            <p class="subtitle">Record stock purchased from a vendor. Quantities are added to inventory.</p>
+        </div>
+    </section>
+
+    <div class="admin-users-layout">
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">New purchase invoice</h2>
+
+            <div class="mb-3">
+                <label class="form-label">Vendor</label>
+                <InputSelect class="form-control" TValue="int" @bind-Value="_vendorId">
+                    <option value="0">Select vendor…</option>
+                    @foreach (var v in _vendors)
+                    {
+                        <option value="@v.VendorId" disabled="@(!v.IsActive)">@v.VendorName@(v.IsActive ? "" : " (inactive)")</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Purchase date</label>
+                <InputDate class="form-control" TValue="DateTime?" @bind-Value="_purchaseDate" />
+            </div>
+
+            <h3 class="h6 mt-4">Line items</h3>
+            @for (var i = 0; i < _lines.Count; i++)
+            {
+                var index = i;
+                <div class="border rounded p-3 mb-3" @key="_lines[index].RowKey">
+                    <div class="mb-2">
+                        <label class="form-label">Part</label>
+                        <InputSelect class="form-control" TValue="int" @bind-Value="_lines[index].PartId">
+                            <option value="0">Select part…</option>
+                            @foreach (var p in _parts.Where(x => x.IsActive))
+                            {
+                                <option value="@p.PartId">@p.PartName (@p.QuantityOnHand in stock)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Cost price (each)</label>
+                            <InputNumber class="form-control" TValue="decimal" @bind-Value="_lines[index].CostPrice" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quantity</label>
+                            <InputNumber class="form-control" TValue="int" @bind-Value="_lines[index].QuantityBought" />
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            @if (_lines.Count > 1)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="@(() => RemoveLine(index))">Remove line</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" @onclick="AddLine">+ Add line</button>
+
+            <button class="btn btn-success" type="button" disabled="@_isSaving" @onclick="SubmitPurchase">
+                @(_isSaving ? "Saving…" : "Save purchase & update stock")
+            </button>
+
+            @if (!string.IsNullOrEmpty(_loadError))
+            {
+                <p class="mt-3 status-text">@_loadError</p>
+            }
+
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <p class="mt-3 status-text @(_messageOk ? "text-success" : "")">@_message</p>
+            }
+        </section>
+
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">Recent purchase invoices</h2>
+            @if (_isLoadingList)
+            {
+                <p class="status-text">Loading…</p>
+            }
+            else if (_recent.Count == 0)
+            {
+                <p class="subtitle">No invoices yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vendor</th>
+                                <th>Lines</th>
+                                <th class="text-end">Total cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in _recent)
+                            {
+                                <tr>
+                                    <td>@row.PurchaseDate.ToLocalTime().ToString("g")</td>
+                                    <td>@row.VendorName</td>
+                                    <td>@row.LineCount</td>
+                                    <td class="text-end">@row.TotalCost.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private readonly List<PurchaseLineVm> _lines = [new()];
+    private List<AdminVendorDto> _vendors = [];
+    private List<AdminPartDto> _parts = [];
+    private List<AdminPurchaseInvoiceListItemDto> _recent = [];
+
+    private int _vendorId;
+    private DateTime? _purchaseDate = DateTime.Today;
+
+    private bool _isSaving;
+    private bool _isLoadingList = true;
+    private string _message = string.Empty;
+    private bool _messageOk;
+    private string _loadError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateService.CurrentUser?.Role != "Admin" || string.IsNullOrEmpty(AuthStateService.CurrentUser.Token))
+        {
+            _isLoadingList = false;
+            return;
+        }
+
+        try
+        {
+            var token = AuthStateService.CurrentUser.Token;
+            _vendors = await AuthApiService.GetAdminVendorsAsync(token);
+            _parts = await AuthApiService.GetAdminPartsAsync(token);
+            _recent = await AuthApiService.GetAdminPurchaseInvoicesAsync(token);
+            if (_vendors.Count == 0)
+            {
+                _loadError = "No vendors loaded. Add vendors under Manage Vendors, or check that the API returned data (login as admin).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Could not load data: {ex.Message}";
+        }
+        finally
+        {
+            _isLoadingList = false;
+        }
+    }
+
+    private void AddLine() => _lines.Add(new PurchaseLineVm());
+
+    private void RemoveLine(int index)
+    {
+        if (index >= 0 && index < _lines.Count && _lines.Count > 1)
+        {
+            _lines.RemoveAt(index);
+        }
+    }
+
+    private async Task SubmitPurchase()
+    {
+        _message = string.Empty;
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        if (_vendorId == 0)
+        {
+            _messageOk = false;
+            _message = "Select a vendor.";
+            return;
+        }
+
+        var items = _lines
+            .Where(x => x.PartId > 0 && x.QuantityBought > 0 && x.CostPrice >= 0)
+            .Select(x => new AdminPurchaseInvoiceLineRequestDto
+            {
+                PartId = x.PartId,
+                CostPrice = x.CostPrice,
+                QuantityBought = x.QuantityBought
+            })
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            _messageOk = false;
+            _message = "Add at least one valid line (part, quantity, cost).";
+            return;
+        }
+
+        _isSaving = true;
+        var req = new AdminCreatePurchaseInvoiceRequestDto
+        {
+            VendorId = _vendorId,
+            PurchaseDate = _purchaseDate,
+            Items = items
+        };
+
+        var result = await AuthApiService.CreateAdminPurchaseInvoiceAsync(req, AuthStateService.CurrentUser.Token);
+        _isSaving = false;
+
+        if (result is null)
+        {
+            _messageOk = false;
+            _message = "Could not save purchase. Check vendor, parts, and try again.";
+            return;
+        }
+
+        _messageOk = true;
+        _message = $"Purchase #{result.PurchaseInvoiceId} saved. Total {result.TotalCost:N2}.";
+
+        _recent = await AuthApiService.GetAdminPurchaseInvoicesAsync(AuthStateService.CurrentUser.Token);
+        _parts = await AuthApiService.GetAdminPartsAsync(AuthStateService.CurrentUser.Token);
+
+        _vendorId = 0;
+        _purchaseDate = DateTime.Today;
+        _lines.Clear();
+        _lines.Add(new PurchaseLineVm());
+    }
+
+    private sealed class PurchaseLineVm
+    {
+        public Guid RowKey { get; } = Guid.NewGuid();
+        public int PartId { get; set; }
+        public decimal CostPrice { get; set; }
+        public int QuantityBought { get; set; } = 1;
+    }
+}
