@@ -9,16 +9,17 @@
     <h1>My Profile</h1>
     <p class="subtitle">Manage your customer profile details.</p>
 
-    @if (_isLoadingProfile)
-    {
-        <p class="status-text">Loading profile...</p>
-    }
-    else if (!_canAccessPage)
+    @if (!_canAccessPage)
     {
         <p class="status-text">Only customer accounts can access this page.</p>
     }
     else
     {
+        @if (_isLoadingProfile)
+        {
+            <p class="status-text mb-3">Loading your saved details from the server…</p>
+        }
+
         <EditForm Model="_model" OnValidSubmit="HandleSave" FormName="CustomerProfileForm">
             <DataAnnotationsValidator />
             <ValidationSummary />
@@ -48,7 +49,7 @@
                 <InputText class="form-control" @bind-Value="_model.NewPassword" type="password" />
             </div>
 
-            <button class="btn btn-primary" type="submit" disabled="@_isSaving">
+            <button class="btn btn-primary" type="submit" disabled="@(_isSaving || _isLoadingProfile)">
                 @(_isSaving ? "Saving..." : "Save Profile")
             </button>
         </EditForm>
@@ -83,12 +84,19 @@
         }
 
         _canAccessPage = true;
+        // Pre-fill from login so the form is never empty while the API loads.
+        _model.Name = AuthStateService.CurrentUser.Name;
+        _model.Email = AuthStateService.CurrentUser.Email;
+        _model.Phone = string.Empty;
+        _model.Address = string.Empty;
+        _model.NewPassword = string.Empty;
+
         var token = AuthStateService.CurrentUser.Token;
         var profile = await AuthApiService.GetCustomerProfileAsync(token);
 
         if (profile is null)
         {
-            _message = "Unable to load profile.";
+            _message = "Could not load profile from the server. Check that the backend is running and you are logged in as a customer.";
             _isLoadingProfile = false;
             return;
         }
