@@ -1,0 +1,163 @@
+@page "/staff/customers/search"
+@rendermode InteractiveServer
+@using VehiclePartsFrontend.Models.Staff
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Search customers</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role is not ("Staff" or "Admin"))
+{
+    <section class="dashboard-card">
+        <p class="status-text">Staff or Admin access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">Search customers</h1>
+            <p class="subtitle">Find customers by name, phone, customer ID, or vehicle number.</p>
+        </div>
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Search</label>
+                <InputText class="form-control"
+                           @bind-Value="_searchTerm"
+                           @onkeydown="HandleSearchKeyDown"
+                           placeholder="Name, phone, customer ID, or vehicle number..." />
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" type="button" disabled="@_isSearching" @onclick="SearchAsync">
+                    @(_isSearching ? "Searching..." : "Search")
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="mt-3 status-alert error">@_error</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="mt-3 status-text">@_message</p>
+        }
+    </section>
+
+    @if (_hasSearched)
+    {
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">Results (@_results.Count)</h2>
+
+            @if (_results.Count == 0)
+            {
+                <p class="subtitle">No customers matched your search.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Address</th>
+                                <th>Vehicles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var customer in _results)
+                            {
+                                <tr>
+                                    <td>@customer.UserId</td>
+                                    <td>@customer.Name</td>
+                                    <td>@customer.Phone</td>
+                                    <td>@customer.Email</td>
+                                    <td>@customer.Address</td>
+                                    <td>
+                                        @if (customer.VehicleNumbers.Count == 0)
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            @string.Join(", ", customer.VehicleNumbers)
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    private string _searchTerm = string.Empty;
+    private List<StaffCustomerSearchResultDto> _results = [];
+    private bool _isSearching;
+    private bool _hasSearched;
+    private string _error = string.Empty;
+    private string _message = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (!AuthStateService.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _error = "Enter a search term.";
+            _message = string.Empty;
+            return;
+        }
+
+        _isSearching = true;
+        _error = string.Empty;
+        _message = string.Empty;
+
+        var (results, error) = await AuthApiService.SearchStaffCustomersAsync(
+            _searchTerm.Trim(),
+            AuthStateService.CurrentUser.Token);
+
+        _isSearching = false;
+        _hasSearched = true;
+
+        if (error is not null)
+        {
+            _error = error;
+            _results = [];
+            return;
+        }
+
+        _results = results;
+        _message = results.Count == 0
+            ? "No matches found."
+            : $"Found {results.Count} customer(s).";
+    }
+}

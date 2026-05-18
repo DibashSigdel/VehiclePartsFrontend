@@ -232,6 +232,23 @@ public class AuthApiService
         return response.IsSuccessStatusCode;
     }
 
+    public async Task<(List<StaffCustomerSearchResultDto> Results, string? Error)> SearchStaffCustomersAsync(
+        string query,
+        string token)
+    {
+        var url = $"api/staff/customers/search?q={Uri.EscapeDataString(query)}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return ([], await ReadErrorMessageAsync(response));
+        }
+
+        var results = await response.Content.ReadFromJsonAsync<List<StaffCustomerSearchResultDto>>() ?? [];
+        return (results, null);
+    }
+
     public async Task<StaffCustomerWithVehicleResponseDto?> RegisterCustomerWithVehicleByStaffAsync(StaffRegisterCustomerRequestDto requestModel, string token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/staff/customers/register-with-vehicle")
