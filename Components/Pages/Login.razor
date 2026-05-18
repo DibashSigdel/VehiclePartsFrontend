@@ -52,7 +52,18 @@
         _isLoading = true;
         _message = string.Empty;
 
-        var response = await AuthApiService.LoginAsync(_model);
+        AuthResponseDto? response;
+        try
+        {
+            response = await AuthApiService.LoginAsync(_model);
+        }
+        catch (HttpRequestException)
+        {
+            _isLoading = false;
+            _message = "Cannot reach the API. Start the backend with: dotnet run --launch-profile http (http://localhost:5173).";
+            return;
+        }
+
         _isLoading = false;
 
         if (response is null)
