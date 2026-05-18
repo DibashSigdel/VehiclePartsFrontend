@@ -29,6 +29,8 @@ public class StaffSalesInvoiceResponseDto
     public decimal TotalAmount { get; set; }
     public string PaymentType { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
+    public bool LoyaltyDiscountApplied { get; set; }
+    public decimal LoyaltyDiscountAmount { get; set; }
 }
 
 public class StaffSalesInvoiceListItemDto

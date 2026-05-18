@@ -58,10 +58,22 @@ else
                     </InputSelect>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Discount</label>
+                    <label class="form-label">Extra discount (optional)</label>
                     <InputNumber class="form-control" TValue="decimal" @bind-Value="_discount" />
                 </div>
             </div>
+
+            @if (CalculatedSubTotal > 0)
+            {
+                <div class="mb-3 p-3 border rounded">
+                    <p class="mb-1"><strong>Subtotal:</strong> @CalculatedSubTotal.ToString("N2")</p>
+                    @if (LoyaltyDiscountPreview > 0)
+                    {
+                        <p class="mb-1 status-text">Loyalty: 10% off (@LoyaltyDiscountPreview.ToString("N2")) applies when subtotal is over 5,000.</p>
+                    }
+                    <p class="mb-0"><strong>Discount used:</strong> @EffectiveDiscountPreview.ToString("N2") · <strong>Total:</strong> @TotalPreview.ToString("N2")</p>
+                </div>
+            }
 
             @if (_paymentStatus == "Pending")
             {
@@ -292,7 +304,9 @@ else
             return;
         }
 
-        _message = $"Invoice #{result.SalesInvoiceId} saved. Total {result.TotalAmount:N2}.";
+        _message = result.LoyaltyDiscountApplied
+            ? $"Invoice #{result.SalesInvoiceId} saved. Loyalty 10% applied ({result.LoyaltyDiscountAmount:N2} off). Total {result.TotalAmount:N2}."
+            : $"Invoice #{result.SalesInvoiceId} saved. Total {result.TotalAmount:N2}.";
         _recent = await AuthApiService.GetStaffSalesInvoicesAsync(AuthStateService.CurrentUser.Token);
         _parts = await AuthApiService.GetStaffSalesPartsAsync(AuthStateService.CurrentUser.Token);
 
@@ -305,6 +319,18 @@ else
         _lines.Clear();
         _lines.Add(new SalesLineVm());
     }
+
+    private decimal CalculatedSubTotal => _lines
+        .Where(x => x.PartId > 0 && x.Quantity > 0 && x.UnitPrice >= 0)
+        .Sum(x => x.UnitPrice * x.Quantity);
+
+    private decimal LoyaltyDiscountPreview =>
+        CalculatedSubTotal > 5000m ? Math.Round(CalculatedSubTotal * 0.10m, 2, MidpointRounding.AwayFromZero) : 0m;
+
+    private decimal EffectiveDiscountPreview =>
+        LoyaltyDiscountPreview > 0 ? Math.Max(_discount, LoyaltyDiscountPreview) : _discount;
+
+    private decimal TotalPreview => CalculatedSubTotal - EffectiveDiscountPreview;
 
     private sealed class SalesLineVm
     {
