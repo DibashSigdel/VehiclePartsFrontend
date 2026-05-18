@@ -1,0 +1,376 @@
+@page "/customer/services"
+@rendermode InteractiveServer
+@using VehiclePartsFrontend.Models.Customer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+
+<PageTitle>Book & request services</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Customer")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Customer access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">Services</h1>
+            <p class="subtitle">Book appointments, request unavailable parts, and submit service reviews.</p>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrEmpty(_loadError))
+    {
+        <section class="dashboard-card mb-3">
+            <p class="status-alert error">@_loadError</p>
+        </section>
+    }
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Book service appointment</h2>
+        @if (_vehicles.Count == 0)
+        {
+            <p class="subtitle">No vehicles on your account. Ask staff to register your vehicle first.</p>
+        }
+        else
+        {
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Vehicle</label>
+                    <InputSelect class="form-control" TValue="int" @bind-Value="_bookVehicleId">
+                        <option value="0">Select vehicle</option>
+                        @foreach (var v in _vehicles)
+                        {
+                            <option value="@v.VehicleId">@v.Brand @v.Model (@v.VehicleNumber)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <InputDate class="form-control" TValue="DateTime?" @bind-Value="_bookDate" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Service note</label>
+                    <InputText class="form-control" @bind-Value="_bookNote" />
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" type="button" disabled="@_isSaving" @onclick="BookAppointmentAsync">
+                        Book appointment
+                    </button>
+                </div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(_appointmentMessage))
+        {
+            <p class="mt-3 status-text">@_appointmentMessage</p>
+        }
+
+        <h3 class="h6 mt-4 mb-2">My appointments</h3>
+        @if (_appointments.Count == 0)
+        {
+            <p class="subtitle">No appointments yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _appointments)
+                        {
+                            <tr>
+                                <td>@a.VehicleLabel</td>
+                                <td>@a.AppointmentDate.ToLocalTime().ToString("g")</td>
+                                <td>@a.Status</td>
+                                <td>@a.ServiceNote</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Request unavailable part</h2>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Part name</label>
+                <InputText class="form-control" @bind-Value="_partName" />
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Details</label>
+                <InputText class="form-control" @bind-Value="_partDetails" />
+            </div>
+            <div class="col-12">
+                <button class="btn btn-primary" type="button" disabled="@_isSaving" @onclick="SubmitPartRequestAsync">
+                    Submit request
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(_partMessage))
+        {
+            <p class="mt-3 status-text">@_partMessage</p>
+        }
+
+        <h3 class="h6 mt-4 mb-2">My part requests</h3>
+        @if (_partRequests.Count == 0)
+        {
+            <p class="subtitle">No part requests yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Part</th>
+                            <th>Details</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in _partRequests)
+                        {
+                            <tr>
+                                <td>@p.RequestedPartName</td>
+                                <td>@p.Details</td>
+                                <td>@p.RequestDate.ToLocalTime().ToString("d")</td>
+                                <td>@p.RequestStatus</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="dashboard-card">
+        <h2 class="h5 mb-3">Service reviews</h2>
+        @if (_reviewable.Count == 0)
+        {
+            <p class="subtitle">No appointments ready to review (past or completed visits only).</p>
+        }
+        else
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-md-5">
+                    <label class="form-label">Appointment</label>
+                    <InputSelect class="form-control" TValue="int" @bind-Value="_reviewAppointmentId">
+                        <option value="0">Select appointment</option>
+                        @foreach (var a in _reviewable)
+                        {
+                            <option value="@a.AppointmentId">@a.VehicleLabel — @a.AppointmentDate.ToLocalTime().ToString("g")</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Rating (1–5)</label>
+                    <InputNumber class="form-control" TValue="int" @bind-Value="_reviewRating" min="1" max="5" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Comment</label>
+                    <InputText class="form-control" @bind-Value="_reviewComment" />
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" type="button" disabled="@_isSaving" @onclick="SubmitReviewAsync">
+                        Submit review
+                    </button>
+                </div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(_reviewMessage))
+        {
+            <p class="status-text">@_reviewMessage</p>
+        }
+
+        <h3 class="h6 mt-4 mb-2">My reviews</h3>
+        @if (_reviews.Count == 0)
+        {
+            <p class="subtitle">No reviews submitted yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Rating</th>
+                            <th>Comment</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _reviews)
+                        {
+                            <tr>
+                                <td>@r.VehicleLabel</td>
+                                <td>@r.Rating / 5</td>
+                                <td>@r.Comment</td>
+                                <td>@r.ReviewDate.ToLocalTime().ToString("d")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private List<CustomerVehicleOptionDto> _vehicles = [];
+    private List<CustomerAppointmentDto> _appointments = [];
+    private List<CustomerPartRequestDto> _partRequests = [];
+    private List<CustomerReviewableAppointmentDto> _reviewable = [];
+    private List<CustomerReviewDto> _reviews = [];
+
+    private int _bookVehicleId;
+    private DateTime? _bookDate = DateTime.Today.AddDays(1);
+    private string _bookNote = string.Empty;
+    private string _partName = string.Empty;
+    private string _partDetails = string.Empty;
+    private int _reviewAppointmentId;
+    private int _reviewRating = 5;
+    private string _reviewComment = string.Empty;
+
+    private bool _isSaving;
+    private string _loadError = string.Empty;
+    private string _appointmentMessage = string.Empty;
+    private string _partMessage = string.Empty;
+    private string _reviewMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateService.CurrentUser?.Role == "Customer"
+            && !string.IsNullOrEmpty(AuthStateService.CurrentUser.Token))
+        {
+            await LoadAllAsync();
+        }
+    }
+
+    private async Task LoadAllAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        var token = AuthStateService.CurrentUser.Token;
+        _vehicles = await AuthApiService.GetCustomerVehiclesAsync(token);
+        _appointments = await AuthApiService.GetCustomerAppointmentsAsync(token);
+        _partRequests = await AuthApiService.GetCustomerPartRequestsAsync(token);
+        _reviewable = await AuthApiService.GetCustomerReviewableAppointmentsAsync(token);
+        _reviews = await AuthApiService.GetCustomerReviewsAsync(token);
+        _loadError = string.Empty;
+    }
+
+    private async Task BookAppointmentAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        if (_bookVehicleId <= 0 || !_bookDate.HasValue)
+        {
+            _appointmentMessage = "Select a vehicle and appointment date.";
+            return;
+        }
+
+        _isSaving = true;
+        _appointmentMessage = string.Empty;
+
+        var result = await AuthApiService.BookCustomerAppointmentAsync(
+            new CustomerBookAppointmentRequestDto
+            {
+                VehicleId = _bookVehicleId,
+                AppointmentDate = DateTime.SpecifyKind(_bookDate.Value, DateTimeKind.Utc),
+                ServiceNote = _bookNote
+            },
+            AuthStateService.CurrentUser.Token);
+
+        _appointmentMessage = result is null
+            ? "Could not book appointment. Use a future date."
+            : "Appointment booked successfully.";
+        await LoadAllAsync();
+        _isSaving = false;
+    }
+
+    private async Task SubmitPartRequestAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_partName))
+        {
+            _partMessage = "Enter a part name.";
+            return;
+        }
+
+        _isSaving = true;
+        _partMessage = string.Empty;
+
+        var result = await AuthApiService.CreateCustomerPartRequestAsync(
+            new CustomerCreatePartRequestDto { RequestedPartName = _partName, Details = _partDetails },
+            AuthStateService.CurrentUser.Token);
+
+        _partMessage = result is null ? "Could not submit part request." : "Part request submitted.";
+        _partName = string.Empty;
+        _partDetails = string.Empty;
+        await LoadAllAsync();
+        _isSaving = false;
+    }
+
+    private async Task SubmitReviewAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        if (_reviewAppointmentId <= 0)
+        {
+            _reviewMessage = "Select an appointment to review.";
+            return;
+        }
+
+        if (_reviewRating is < 1 or > 5)
+        {
+            _reviewMessage = "Rating must be between 1 and 5.";
+            return;
+        }
+
+        _isSaving = true;
+        _reviewMessage = string.Empty;
+
+        var result = await AuthApiService.SubmitCustomerReviewAsync(
+            new CustomerSubmitReviewRequestDto
+            {
+                AppointmentId = _reviewAppointmentId,
+                Rating = _reviewRating,
+                Comment = _reviewComment
+            },
+            AuthStateService.CurrentUser.Token);
+
+        _reviewMessage = result is null
+            ? "Could not submit review. The visit may not be eligible yet."
+            : "Review submitted. Thank you!";
+        _reviewAppointmentId = 0;
+        _reviewComment = string.Empty;
+        await LoadAllAsync();
+        _isSaving = false;
+    }
+}

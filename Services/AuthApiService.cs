@@ -406,4 +406,93 @@ public class AuthApiService
 
         return await response.Content.ReadFromJsonAsync<StaffCustomerReportsDto>();
     }
+
+    public async Task<List<CustomerVehicleOptionDto>> GetCustomerVehiclesAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/vehicles");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerVehicleOptionDto>>() ?? []
+            : [];
+    }
+
+    public async Task<List<CustomerAppointmentDto>> GetCustomerAppointmentsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/appointments");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerAppointmentDto>>() ?? []
+            : [];
+    }
+
+    public async Task<CustomerAppointmentDto?> BookCustomerAppointmentAsync(CustomerBookAppointmentRequestDto body, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/customer/portal/appointments")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<CustomerAppointmentDto>()
+            : null;
+    }
+
+    public async Task<List<CustomerPartRequestDto>> GetCustomerPartRequestsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/part-requests");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerPartRequestDto>>() ?? []
+            : [];
+    }
+
+    public async Task<CustomerPartRequestDto?> CreateCustomerPartRequestAsync(CustomerCreatePartRequestDto body, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/customer/portal/part-requests")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<CustomerPartRequestDto>()
+            : null;
+    }
+
+    public async Task<List<CustomerReviewDto>> GetCustomerReviewsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/reviews");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerReviewDto>>() ?? []
+            : [];
+    }
+
+    public async Task<List<CustomerReviewableAppointmentDto>> GetCustomerReviewableAppointmentsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/appointments/reviewable");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerReviewableAppointmentDto>>() ?? []
+            : [];
+    }
+
+    public async Task<CustomerReviewDto?> SubmitCustomerReviewAsync(CustomerSubmitReviewRequestDto body, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/customer/portal/reviews")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<CustomerReviewDto>()
+            : null;
+    }
 }
