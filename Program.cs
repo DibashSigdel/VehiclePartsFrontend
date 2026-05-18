@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var backendBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5041/";
+var backendBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5173/";
 builder.Services.AddHttpClient<AuthApiService>(client =>
 {
     client.BaseAddress = new Uri(backendBaseUrl);
