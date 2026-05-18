@@ -364,4 +364,32 @@ public class AuthApiService
 
         return await response.Content.ReadFromJsonAsync<StaffSalesInvoiceResponseDto>();
     }
+
+    public async Task<AdminFinancialReportDto?> GetAdminFinancialReportAsync(
+        string period,
+        string token,
+        DateTime? from = null,
+        DateTime? to = null)
+    {
+        var query = $"api/admin/reports/financial?period={Uri.EscapeDataString(period)}";
+        if (from.HasValue)
+        {
+            query += $"&from={Uri.EscapeDataString(from.Value.ToString("O"))}";
+        }
+
+        if (to.HasValue)
+        {
+            query += $"&to={Uri.EscapeDataString(to.Value.ToString("O"))}";
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, query);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<AdminFinancialReportDto>();
+    }
 }

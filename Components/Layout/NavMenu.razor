@@ -51,6 +51,11 @@
                     <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Purchase invoices
                 </NavLink>
             </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/financial-reports">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Financial reports
+                </NavLink>
+            </div>
         }
 
         @if (AuthStateService.IsLoggedIn && (AuthStateService.CurrentUser?.Role == "Staff" || AuthStateService.CurrentUser?.Role == "Admin"))
@@ -126,4 +131,3 @@
         AuthStateService.StateChanged -= HandleStateChanged;
     }
 }
-
