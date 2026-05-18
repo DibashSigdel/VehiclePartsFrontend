@@ -136,6 +136,10 @@ else
 
         <section class="dashboard-card">
             <h2 class="h5 mb-3">Recent sales</h2>
+            @if (!string.IsNullOrEmpty(_emailMessage))
+            {
+                <p class="status-text mb-2">@_emailMessage</p>
+            }
             @if (_isLoadingList)
             {
                 <p class="status-text">Loading…</p>
@@ -154,6 +158,7 @@ else
                                 <th>Customer</th>
                                 <th>Payment</th>
                                 <th class="text-end">Total</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,9 +166,22 @@ else
                             {
                                 <tr>
                                     <td>@row.InvoiceDate.ToLocalTime().ToString("g")</td>
-                                    <td>@row.CustomerName</td>
+                                    <td>
+                                        @row.CustomerName
+                                        @if (!string.IsNullOrWhiteSpace(row.CustomerEmail))
+                                        {
+                                            <br /><small class="text-muted">@row.CustomerEmail</small>
+                                        }
+                                    </td>
                                     <td>@row.PaymentType / @row.PaymentStatus</td>
                                     <td class="text-end">@row.TotalAmount.ToString("N2")</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                disabled="@(_emailingInvoiceId == row.SalesInvoiceId)"
+                                                @onclick="() => SendInvoiceEmailAsync(row.SalesInvoiceId)">
+                                            @(_emailingInvoiceId == row.SalesInvoiceId ? "Sending…" : "Email invoice")
+                                        </button>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -190,7 +208,9 @@ else
 
     private bool _isSaving;
     private bool _isLoadingList = true;
+    private int? _emailingInvoiceId;
     private string _message = string.Empty;
+    private string _emailMessage = string.Empty;
     private string _loadError = string.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -331,6 +351,24 @@ else
         LoyaltyDiscountPreview > 0 ? Math.Max(_discount, LoyaltyDiscountPreview) : _discount;
 
     private decimal TotalPreview => CalculatedSubTotal - EffectiveDiscountPreview;
+
+    private async Task SendInvoiceEmailAsync(int salesInvoiceId)
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        _emailingInvoiceId = salesInvoiceId;
+        _emailMessage = string.Empty;
+
+        var result = await AuthApiService.SendStaffSalesInvoiceEmailAsync(
+            salesInvoiceId,
+            AuthStateService.CurrentUser.Token);
+
+        _emailingInvoiceId = null;
+        _emailMessage = result?.Message ?? "Could not send invoice email.";
+    }
 
     private sealed class SalesLineVm
     {

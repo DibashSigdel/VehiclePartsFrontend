@@ -365,6 +365,35 @@ public class AuthApiService
         return await response.Content.ReadFromJsonAsync<StaffSalesInvoiceResponseDto>();
     }
 
+    public async Task<StaffSendInvoiceEmailResponseDto?> SendStaffSalesInvoiceEmailAsync(int salesInvoiceId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"api/staff/sales-invoices/{salesInvoiceId}/send-email");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        var body = await response.Content.ReadFromJsonAsync<StaffSendInvoiceEmailResponseDto>();
+        if (body is not null)
+        {
+            return body;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return new StaffSendInvoiceEmailResponseDto
+            {
+                SalesInvoiceId = salesInvoiceId,
+                Sent = false,
+                Message = "Could not send invoice email."
+            };
+        }
+
+        return body;
+    }
+
     public async Task<AdminFinancialReportDto?> GetAdminFinancialReportAsync(
         string period,
         string token,

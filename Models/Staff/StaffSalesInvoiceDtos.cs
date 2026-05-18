@@ -37,10 +37,18 @@ public class StaffSalesInvoiceListItemDto
 {
     public int SalesInvoiceId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
     public DateTime InvoiceDate { get; set; }
     public decimal TotalAmount { get; set; }
     public string PaymentType { get; set; } = string.Empty;
     public string PaymentStatus { get; set; } = string.Empty;
+}
+
+public class StaffSendInvoiceEmailResponseDto
+{
+    public int SalesInvoiceId { get; set; }
+    public bool Sent { get; set; }
+    public string Message { get; set; } = string.Empty;
 }
 
 public class StaffCustomerOptionDto
