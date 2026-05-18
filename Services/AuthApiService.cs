@@ -524,4 +524,42 @@ public class AuthApiService
             ? await response.Content.ReadFromJsonAsync<CustomerReviewDto>()
             : null;
     }
+
+    public async Task<List<LowStockAlertDto>> GetAdminLowStockAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/system/low-stock");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<LowStockAlertDto>>() ?? []
+            : [];
+    }
+
+    public async Task<List<AdminNotificationDto>> GetAdminNotificationsAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/admin/system/notifications");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<AdminNotificationDto>>() ?? []
+            : [];
+    }
+
+    public async Task<SystemMonitoringRunDto?> RunAdminSystemChecksAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/admin/system/run-checks");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<SystemMonitoringRunDto>()
+            : null;
+    }
+
+    public async Task<bool> MarkAdminNotificationReadAsync(int notificationId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"api/admin/system/notifications/{notificationId}/read");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
 }

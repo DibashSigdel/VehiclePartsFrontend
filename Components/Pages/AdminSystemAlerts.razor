@@ -1,0 +1,175 @@
+@page "/admin/system-alerts"
+@rendermode InteractiveServer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+
+<PageTitle>System alerts</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Admin")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Admin access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">System alerts</h1>
+            <p class="subtitle">Low stock warnings and automatic overdue credit reminders.</p>
+        </div>
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button class="btn btn-primary" type="button" disabled="@_isRunning" @onclick="RunChecksAsync">
+                @(_isRunning ? "Running checks…" : "Run checks now")
+            </button>
+            <button class="btn btn-outline-secondary" type="button" disabled="@_isLoading" @onclick="LoadAllAsync">
+                Refresh
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(_runMessage))
+        {
+            <p class="mt-3 status-text">@_runMessage</p>
+        }
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Low stock (below 10 units)</h2>
+        @if (_lowStock.Count == 0)
+        {
+            <p class="subtitle">No parts below the threshold.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Part</th>
+                            <th class="text-end">Qty on hand</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in _lowStock)
+                        {
+                            <tr>
+                                <td>@p.PartName (#@p.PartId)</td>
+                                <td class="text-end">@p.QuantityOnHand</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="dashboard-card">
+        <h2 class="h5 mb-3">My notifications</h2>
+        @if (_isLoading)
+        {
+            <p class="status-text">Loading…</p>
+        }
+        else if (_notifications.Count == 0)
+        {
+            <p class="subtitle">No notifications yet. Run checks or wait for the automatic background job.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Sent</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var n in _notifications)
+                        {
+                            <tr class="@(n.IsRead ? "" : "table-warning")">
+                                <td>@n.NotificationType</td>
+                                <td>@n.Message</td>
+                                <td>@n.SentAt.ToLocalTime().ToString("g")</td>
+                                <td>
+                                    @if (!n.IsRead)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => MarkReadAsync(n.NotificationId)">
+                                            Mark read
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private List<LowStockAlertDto> _lowStock = [];
+    private List<AdminNotificationDto> _notifications = [];
+    private bool _isLoading = true;
+    private bool _isRunning;
+    private string _runMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateService.CurrentUser?.Role == "Admin"
+            && !string.IsNullOrEmpty(AuthStateService.CurrentUser.Token))
+        {
+            await LoadAllAsync();
+        }
+        else
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadAllAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        _isLoading = true;
+        var token = AuthStateService.CurrentUser.Token;
+        _lowStock = await AuthApiService.GetAdminLowStockAsync(token);
+        _notifications = await AuthApiService.GetAdminNotificationsAsync(token);
+        _isLoading = false;
+    }
+
+    private async Task RunChecksAsync()
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        _isRunning = true;
+        _runMessage = string.Empty;
+
+        var result = await AuthApiService.RunAdminSystemChecksAsync(AuthStateService.CurrentUser.Token);
+        _runMessage = result?.Message ?? "Could not run system checks.";
+        await LoadAllAsync();
+        _isRunning = false;
+    }
+
+    private async Task MarkReadAsync(int notificationId)
+    {
+        if (AuthStateService.CurrentUser?.Token is null)
+        {
+            return;
+        }
+
+        await AuthApiService.MarkAdminNotificationReadAsync(notificationId, AuthStateService.CurrentUser.Token);
+        await LoadAllAsync();
+    }
+}
