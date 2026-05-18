@@ -1,0 +1,260 @@
+@page "/customer/vehicles"
+@rendermode InteractiveServer
+@using VehiclePartsFrontend.Models.Customer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>My Vehicles</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Customer")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Customer access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">My Vehicles</h1>
+            <p class="subtitle">Add, update, or remove vehicles linked to your account.</p>
+        </div>
+        <div class="admin-stats">
+            <div class="stat-chip">Total: @_vehicles.Count</div>
+        </div>
+    </section>
+
+    <section class="admin-users-layout">
+        <div class="dashboard-card admin-form-panel">
+            <h2>@(_editingVehicleId is null ? "Add vehicle" : "Edit vehicle")</h2>
+
+            <EditForm Model="_form" OnValidSubmit="HandleSave" FormName="CustomerVehicleForm">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label>Vehicle number</label>
+                    <InputText class="form-control" @bind-Value="_form.VehicleNumber" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Brand</label>
+                    <InputText class="form-control" @bind-Value="_form.Brand" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Model</label>
+                    <InputText class="form-control" @bind-Value="_form.Model" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Year</label>
+                    <InputNumber class="form-control" @bind-Value="_form.Year" />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : (_editingVehicleId is null ? "Add vehicle" : "Save changes"))
+                    </button>
+                    @if (_editingVehicleId is not null)
+                    {
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit" disabled="@_isSaving">
+                            Cancel
+                        </button>
+                    }
+                </div>
+            </EditForm>
+
+            @if (!string.IsNullOrWhiteSpace(_message))
+            {
+                <p class="mt-3 status-text">@_message</p>
+            }
+        </div>
+
+        <div class="dashboard-card admin-table-panel">
+            <h2>Your vehicles</h2>
+
+            @if (_isLoading)
+            {
+                <p>Loading vehicles...</p>
+            }
+            else if (_vehicles.Count == 0)
+            {
+                <p class="subtitle">No vehicles yet. Add your first vehicle using the form.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Brand</th>
+                                <th>Model</th>
+                                <th>Year</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var vehicle in _vehicles)
+                            {
+                                <tr>
+                                    <td>@vehicle.VehicleNumber</td>
+                                    <td>@vehicle.Brand</td>
+                                    <td>@vehicle.Model</td>
+                                    <td>@vehicle.Year</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(vehicle)">
+                                            Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteVehicle(vehicle.VehicleId)" disabled="@_isSaving">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private readonly CustomerSaveVehicleRequestDto _form = new();
+    private List<CustomerVehicleOptionDto> _vehicles = [];
+    private int? _editingVehicleId;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string _message = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser is null)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(AuthStateService.CurrentUser.Role, "Customer", StringComparison.OrdinalIgnoreCase))
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await LoadVehiclesAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        _isLoading = true;
+        var token = AuthStateService.CurrentUser!.Token;
+        _vehicles = await AuthApiService.GetCustomerVehiclesAsync(token);
+        _isLoading = false;
+    }
+
+    private void StartEdit(CustomerVehicleOptionDto vehicle)
+    {
+        _editingVehicleId = vehicle.VehicleId;
+        _form.VehicleNumber = vehicle.VehicleNumber;
+        _form.Brand = vehicle.Brand;
+        _form.Model = vehicle.Model;
+        _form.Year = vehicle.Year;
+        _message = string.Empty;
+    }
+
+    private void CancelEdit()
+    {
+        _editingVehicleId = null;
+        ResetForm();
+        _message = string.Empty;
+    }
+
+    private void ResetForm()
+    {
+        _form.VehicleNumber = string.Empty;
+        _form.Brand = string.Empty;
+        _form.Model = string.Empty;
+        _form.Year = DateTime.UtcNow.Year;
+    }
+
+    private async Task HandleSave()
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _message = string.Empty;
+        var token = AuthStateService.CurrentUser.Token;
+
+        if (_editingVehicleId is null)
+        {
+            var (vehicle, error) = await AuthApiService.CreateCustomerVehicleAsync(_form, token);
+            _isSaving = false;
+
+            if (vehicle is null)
+            {
+                _message = error ?? "Could not add vehicle.";
+                return;
+            }
+
+            _vehicles.Add(vehicle);
+            _vehicles = _vehicles.OrderBy(x => x.VehicleNumber).ToList();
+            ResetForm();
+            _message = "Vehicle added successfully.";
+            return;
+        }
+
+        var (updated, updateError) = await AuthApiService.UpdateCustomerVehicleAsync(_editingVehicleId.Value, _form, token);
+        _isSaving = false;
+
+        if (updated is null)
+        {
+            _message = updateError ?? "Could not update vehicle.";
+            return;
+        }
+
+        var index = _vehicles.FindIndex(x => x.VehicleId == updated.VehicleId);
+        if (index >= 0)
+        {
+            _vehicles[index] = updated;
+        }
+
+        _vehicles = _vehicles.OrderBy(x => x.VehicleNumber).ToList();
+        _editingVehicleId = null;
+        ResetForm();
+        _message = "Vehicle updated successfully.";
+    }
+
+    private async Task DeleteVehicle(int vehicleId)
+    {
+        if (AuthStateService.CurrentUser is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _message = string.Empty;
+
+        var (success, error) = await AuthApiService.DeleteCustomerVehicleAsync(vehicleId, AuthStateService.CurrentUser.Token);
+        _isSaving = false;
+
+        if (!success)
+        {
+            _message = error ?? "Could not delete vehicle.";
+            return;
+        }
+
+        _vehicles.RemoveAll(x => x.VehicleId == vehicleId);
+        if (_editingVehicleId == vehicleId)
+        {
+            CancelEdit();
+        }
+
+        _message = "Vehicle deleted.";
+    }
+}

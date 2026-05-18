@@ -32,7 +32,7 @@ else
         <h2 class="h5 mb-3">Book service appointment</h2>
         @if (_vehicles.Count == 0)
         {
-            <p class="subtitle">No vehicles on your account. Ask staff to register your vehicle first.</p>
+            <p class="subtitle">No vehicles on your account. <a href="customer/vehicles">Add a vehicle</a> before booking an appointment.</p>
         }
         else
         {
@@ -170,12 +170,12 @@ else
                         <option value="0">Select appointment</option>
                         @foreach (var a in _reviewable)
                         {
-                            <option value="@a.AppointmentId">@a.VehicleLabel — @a.AppointmentDate.ToLocalTime().ToString("g")</option>
+                            <option value="@a.AppointmentId">@a.VehicleLabel ? @a.AppointmentDate.ToLocalTime().ToString("g")</option>
                         }
                     </InputSelect>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Rating (1–5)</label>
+                    <label class="form-label">Rating (1?5)</label>
                     <InputNumber class="form-control" TValue="int" @bind-Value="_reviewRating" min="1" max="5" />
                 </div>
                 <div class="col-md-5">

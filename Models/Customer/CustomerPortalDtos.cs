@@ -9,6 +9,14 @@ public class CustomerVehicleOptionDto
     public int Year { get; set; }
 }
 
+public class CustomerSaveVehicleRequestDto
+{
+    public string VehicleNumber { get; set; } = string.Empty;
+    public string Brand { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public int Year { get; set; } = DateTime.UtcNow.Year;
+}
+
 public class CustomerAppointmentDto
 {
     public int AppointmentId { get; set; }

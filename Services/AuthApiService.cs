@@ -446,6 +446,69 @@ public class AuthApiService
             : [];
     }
 
+    public async Task<(CustomerVehicleOptionDto? Vehicle, string? Error)> CreateCustomerVehicleAsync(
+        CustomerSaveVehicleRequestDto body,
+        string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/customer/portal/vehicles")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadErrorMessageAsync(response));
+        }
+
+        var vehicle = await response.Content.ReadFromJsonAsync<CustomerVehicleOptionDto>();
+        return (vehicle, null);
+    }
+
+    public async Task<(CustomerVehicleOptionDto? Vehicle, string? Error)> UpdateCustomerVehicleAsync(
+        int vehicleId,
+        CustomerSaveVehicleRequestDto body,
+        string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"api/customer/portal/vehicles/{vehicleId}")
+        {
+            Content = JsonContent.Create(body)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (null, await ReadErrorMessageAsync(response));
+        }
+
+        var vehicle = await response.Content.ReadFromJsonAsync<CustomerVehicleOptionDto>();
+        return (vehicle, null);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteCustomerVehicleAsync(int vehicleId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/customer/portal/vehicles/{vehicleId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (false, await ReadErrorMessageAsync(response));
+        }
+
+        return (true, null);
+    }
+
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return response.ReasonPhrase ?? "Request failed.";
+        }
+
+        return body.Trim().Trim('"');
+    }
+
     public async Task<List<CustomerAppointmentDto>> GetCustomerAppointmentsAsync(string token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/appointments");
