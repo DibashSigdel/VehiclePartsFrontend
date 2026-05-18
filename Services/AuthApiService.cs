@@ -392,4 +392,18 @@ public class AuthApiService
 
         return await response.Content.ReadFromJsonAsync<AdminFinancialReportDto>();
     }
+
+    public async Task<StaffCustomerReportsDto?> GetStaffCustomerReportsAsync(string token, int limit = 20)
+    {
+        var query = $"api/staff/reports/customers?limit={limit}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, query);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<StaffCustomerReportsDto>();
+    }
 }
