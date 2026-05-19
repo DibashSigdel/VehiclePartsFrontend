@@ -1,4 +1,4 @@
-@page "/staff/customers/search"
+ï»¿@page "/staff/customers/search"
 @rendermode InteractiveServer
 @using VehiclePartsFrontend.Models.Staff
 @inject AuthApiService AuthApiService
@@ -68,6 +68,7 @@ else
                                 <th>Email</th>
                                 <th>Address</th>
                                 <th>Vehicles</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,12 +83,15 @@ else
                                     <td>
                                         @if (customer.VehicleNumbers.Count == 0)
                                         {
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">ï¿½</span>
                                         }
                                         else
                                         {
                                             @string.Join(", ", customer.VehicleNumbers)
                                         }
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-sm btn-outline-primary" href="staff/customers/@customer.UserId">View</a>
                                     </td>
                                 </tr>
                             }

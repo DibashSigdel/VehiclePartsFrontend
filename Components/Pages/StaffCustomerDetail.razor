@@ -1,0 +1,212 @@
+@page "/staff/customers/{CustomerId:int}"
+@rendermode InteractiveServer
+@using VehiclePartsFrontend.Models.Staff
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Customer details</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role is not ("Staff" or "Admin"))
+{
+    <section class="dashboard-card">
+        <p class="status-text">Staff or Admin access required.</p>
+    </section>
+}
+else if (_isLoading)
+{
+    <section class="dashboard-card">
+        <p>Loading customer details...</p>
+    </section>
+}
+else if (_detail is null)
+{
+    <section class="dashboard-card">
+        <p class="status-alert error">@_error</p>
+        <a class="btn btn-outline-secondary mt-2" href="staff/customers/search">Back to search</a>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">@_detail.Name</h1>
+            <p class="subtitle">Customer profile, vehicles, and history.</p>
+        </div>
+        <div>
+            <a class="btn btn-outline-secondary" href="staff/customers/search">Back to search</a>
+        </div>
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Profile</h2>
+        <div class="row g-2">
+            <div class="col-md-6"><strong>ID:</strong> @_detail.UserId</div>
+            <div class="col-md-6"><strong>Phone:</strong> @_detail.Phone</div>
+            <div class="col-md-6"><strong>Email:</strong> @_detail.Email</div>
+            <div class="col-md-6"><strong>Member since:</strong> @_detail.CreatedAt.ToLocalTime().ToString("d")</div>
+            <div class="col-12"><strong>Address:</strong> @_detail.Address</div>
+        </div>
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Vehicles (@_detail.Vehicles.Count)</h2>
+        @if (_detail.Vehicles.Count == 0)
+        {
+            <p class="subtitle">No vehicles registered.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var v in _detail.Vehicles)
+                        {
+                            <tr>
+                                <td>@v.VehicleNumber</td>
+                                <td>@v.Brand</td>
+                                <td>@v.Model</td>
+                                <td>@v.Year</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="dashboard-card mb-3">
+        <h2 class="h5 mb-3">Purchase history (@_detail.PurchaseHistory.Count)</h2>
+        @if (_detail.PurchaseHistory.Count == 0)
+        {
+            <p class="subtitle">No sales invoices yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th class="text-end">Items</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">Discount</th>
+                            <th class="text-end">Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inv in _detail.PurchaseHistory)
+                        {
+                            <tr>
+                                <td>@inv.SalesInvoiceId</td>
+                                <td>@inv.InvoiceDate.ToLocalTime().ToString("g")</td>
+                                <td class="text-end">@inv.ItemCount</td>
+                                <td class="text-end">@inv.SubTotal.ToString("N2")</td>
+                                <td class="text-end">@inv.DiscountAmount.ToString("N2")</td>
+                                <td class="text-end">@inv.TotalAmount.ToString("N2")</td>
+                                <td>@inv.PaymentType</td>
+                                <td>@inv.PaymentStatus</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="dashboard-card">
+        <h2 class="h5 mb-3">Service history (@_detail.ServiceHistory.Count)</h2>
+        @if (_detail.ServiceHistory.Count == 0)
+        {
+            <p class="subtitle">No appointments yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vehicle</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appt in _detail.ServiceHistory)
+                        {
+                            <tr>
+                                <td>@appt.AppointmentId</td>
+                                <td>@appt.VehicleLabel</td>
+                                <td>@appt.AppointmentDate.ToLocalTime().ToString("g")</td>
+                                <td>@appt.Status</td>
+                                <td>@appt.ServiceNote</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter]
+    public int CustomerId { get; set; }
+
+    private StaffCustomerDetailDto? _detail;
+    private bool _isLoading = true;
+    private string _error = "Customer not found.";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!AuthStateService.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        if (AuthStateService.CurrentUser?.Role is not ("Staff" or "Admin"))
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _detail = null;
+
+        if (AuthStateService.CurrentUser is null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _detail = await AuthApiService.GetStaffCustomerDetailAsync(
+            CustomerId,
+            AuthStateService.CurrentUser.Token);
+
+        if (_detail is null)
+        {
+            _error = "Could not load customer. Check the ID or try search again.";
+        }
+
+        _isLoading = false;
+    }
+}

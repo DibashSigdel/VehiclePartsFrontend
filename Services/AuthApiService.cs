@@ -249,6 +249,16 @@ public class AuthApiService
         return (results, null);
     }
 
+    public async Task<StaffCustomerDetailDto?> GetStaffCustomerDetailAsync(int customerId, string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/staff/customers/{customerId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<StaffCustomerDetailDto>()
+            : null;
+    }
+
     public async Task<StaffCustomerWithVehicleResponseDto?> RegisterCustomerWithVehicleByStaffAsync(StaffRegisterCustomerRequestDto requestModel, string token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/staff/customers/register-with-vehicle")
