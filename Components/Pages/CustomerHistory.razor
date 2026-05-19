@@ -1,0 +1,153 @@
+@page "/customer/history"
+@rendermode InteractiveServer
+@using VehiclePartsFrontend.Models.Customer
+@inject AuthApiService AuthApiService
+@inject AuthStateService AuthStateService
+@inject NavigationManager NavigationManager
+
+<PageTitle>My History</PageTitle>
+
+@if (AuthStateService.CurrentUser?.Role != "Customer")
+{
+    <section class="dashboard-card">
+        <p class="status-text">Customer access required.</p>
+    </section>
+}
+else
+{
+    <section class="admin-page-head">
+        <div>
+            <h1 class="admin-page-title">My History</h1>
+            <p class="subtitle">Your past purchases and service appointments.</p>
+        </div>
+    </section>
+
+    @if (_isLoading)
+    {
+        <section class="dashboard-card">
+            <p>Loading your history...</p>
+        </section>
+    }
+    else
+    {
+        <section class="dashboard-card mb-3">
+            <h2 class="h5 mb-3">Purchase history (@_purchases.Count)</h2>
+
+            @if (_purchases.Count == 0)
+            {
+                <p class="subtitle">No purchases yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-end">Discount</th>
+                                <th class="text-end">Total</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inv in _purchases)
+                            {
+                                <tr>
+                                    <td>@inv.SalesInvoiceId</td>
+                                    <td>@inv.InvoiceDate.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        @if (inv.Lines.Count == 0)
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            <ul class="mb-0 ps-3">
+                                                @foreach (var line in inv.Lines)
+                                                {
+                                                    <li>@line.PartName × @line.Quantity (@line.LineTotal.ToString("N2"))</li>
+                                                }
+                                            </ul>
+                                        }
+                                    </td>
+                                    <td class="text-end">@inv.SubTotal.ToString("N2")</td>
+                                    <td class="text-end">@inv.DiscountAmount.ToString("N2")</td>
+                                    <td class="text-end">@inv.TotalAmount.ToString("N2")</td>
+                                    <td>@inv.PaymentType</td>
+                                    <td>@inv.PaymentStatus</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="dashboard-card">
+            <h2 class="h5 mb-3">Service history (@_appointments.Count)</h2>
+
+            @if (_appointments.Count == 0)
+            {
+                <p class="subtitle">No service appointments yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Vehicle</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var appt in _appointments)
+                            {
+                                <tr>
+                                    <td>@appt.AppointmentId</td>
+                                    <td>@appt.VehicleLabel</td>
+                                    <td>@appt.AppointmentDate.ToLocalTime().ToString("g")</td>
+                                    <td>@appt.Status</td>
+                                    <td>@appt.ServiceNote</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    private List<CustomerPurchaseHistoryItemDto> _purchases = [];
+    private List<CustomerAppointmentDto> _appointments = [];
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser is null)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(AuthStateService.CurrentUser.Role, "Customer", StringComparison.OrdinalIgnoreCase))
+        {
+            _isLoading = false;
+            return;
+        }
+
+        var token = AuthStateService.CurrentUser.Token;
+        _purchases = await AuthApiService.GetCustomerPurchaseHistoryAsync(token);
+        _appointments = await AuthApiService.GetCustomerAppointmentsAsync(token);
+        _isLoading = false;
+    }
+}

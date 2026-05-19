@@ -536,6 +536,16 @@ public class AuthApiService
         return body.Trim().Trim('"');
     }
 
+    public async Task<List<CustomerPurchaseHistoryItemDto>> GetCustomerPurchaseHistoryAsync(string token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/purchase-history");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _httpClient.SendAsync(request);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<List<CustomerPurchaseHistoryItemDto>>() ?? []
+            : [];
+    }
+
     public async Task<List<CustomerAppointmentDto>> GetCustomerAppointmentsAsync(string token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "api/customer/portal/appointments");
