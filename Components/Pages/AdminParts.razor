@@ -211,7 +211,7 @@
                                 {
                                     <td>@part.PartName</td>
                                     <td>@part.CategoryName</td>
-                                    <td>@part.SellingPrice</td>
+                                    <td>@NepalCurrency.Npr(part.SellingPrice)</td>
                                     <td>@part.QuantityOnHand</td>
                                     <td><span class="role-pill">@(part.IsActive ? "Active" : "Inactive")</span></td>
                                 }

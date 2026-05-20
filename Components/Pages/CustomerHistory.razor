@@ -9,7 +9,7 @@
 
 @if (AuthStateService.CurrentUser?.Role != "Customer")
 {
-    <section class="dashboard-card">
+    <section class="dashboard-card vp-access-denied">
         <p class="status-text">Customer access required.</p>
     </section>
 }
@@ -25,7 +25,7 @@ else
     @if (_isLoading)
     {
         <section class="dashboard-card">
-            <p>Loading your history...</p>
+            <LoadingSkeleton AccessibilityMessage="Loading customer purchase and service history." Lines="4" />
         </section>
     }
     else
@@ -35,7 +35,7 @@ else
 
             @if (_purchases.Count == 0)
             {
-                <p class="subtitle">No purchases yet.</p>
+                <EmptyState Icon="-" Title="No purchases recorded" Message="Invoices created by staff will appear here once you buy parts." />
             }
             else
             {
@@ -62,23 +62,27 @@ else
                                     <td>
                                         @if (inv.Lines.Count == 0)
                                         {
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">-</span>
                                         }
                                         else
                                         {
                                             <ul class="mb-0 ps-3">
                                                 @foreach (var line in inv.Lines)
                                                 {
-                                                    <li>@line.PartName × @line.Quantity (@line.LineTotal.ToString("N2"))</li>
+                                                    <li>@line.PartName x @line.Quantity (@NepalCurrency.Npr(line.LineTotal))</li>
                                                 }
                                             </ul>
                                         }
                                     </td>
-                                    <td class="text-end">@inv.SubTotal.ToString("N2")</td>
-                                    <td class="text-end">@inv.DiscountAmount.ToString("N2")</td>
-                                    <td class="text-end">@inv.TotalAmount.ToString("N2")</td>
-                                    <td>@inv.PaymentType</td>
-                                    <td>@inv.PaymentStatus</td>
+                                    <td class="text-end">@NepalCurrency.Npr(inv.SubTotal)</td>
+                                    <td class="text-end">@NepalCurrency.Npr(inv.DiscountAmount)</td>
+                                    <td class="text-end">@NepalCurrency.Npr(inv.TotalAmount)</td>
+                                    <td><span class="vp-tag vp-tag-info">@inv.PaymentType</span></td>
+                                    <td>
+                                        <span class="vp-tag @(string.Equals(inv.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? "vp-tag-paid" : "vp-tag-pending")">
+                                            @inv.PaymentStatus
+                                        </span>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -92,7 +96,7 @@ else
 
             @if (_appointments.Count == 0)
             {
-                <p class="subtitle">No service appointments yet.</p>
+                <EmptyState Icon="-" Title="No service visits yet" Message="Booked appointments and workshop records will appear in this section." />
             }
             else
             {
@@ -114,7 +118,7 @@ else
                                     <td>@appt.AppointmentId</td>
                                     <td>@appt.VehicleLabel</td>
                                     <td>@appt.AppointmentDate.ToLocalTime().ToString("g")</td>
-                                    <td>@appt.Status</td>
+                                    <td><span class="vp-tag vp-tag-neutral">@appt.Status</span></td>
                                     <td>@appt.ServiceNote</td>
                                 </tr>
                             }

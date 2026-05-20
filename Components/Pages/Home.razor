@@ -1,22 +1,147 @@
 ﻿@page "/"
 @inject AuthStateService AuthStateService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<section class="dashboard-card">
-    <h1>Vehicle Parts System</h1>
-    <p class="subtitle">Simple management portal for users, staff, and admin operations.</p>
+<section class="dashboard-card vp-dash-hero mb-3 mb-lg-4">
+    <div class="vp-dash-hero-inner">
+        <p class="vp-dash-kicker">Automotive inventory · invoicing · workshop CRM</p>
 
-    @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser is not null)
-    {
-        <div class="status-chip success">
-            Signed in as @AuthStateService.CurrentUser.Name (@AuthStateService.CurrentUser.Role)
-        </div>
-    }
-    else
-    {
-        <div class="status-chip neutral">
-            You are not logged in. Use Register or Login from the menu.
-        </div>
-    }
+        @if (!AuthStateService.IsLoggedIn || AuthStateService.CurrentUser is null)
+        {
+            <h1 class="vp-dash-title">Run your workshop with enterprise-grade tooling</h1>
+            <p class="vp-dash-lead">
+                Vehicle Parts Management ties purchasing, stock movements, counter sales, customer profiles,
+                and service history into one practical workspace—how distributors and garages expect their ERP-lite tools to behave.
+            </p>
+            <div class="vp-dash-grid">
+                <a class="vp-dash-tile" href="login">
+                    <span class="vp-dash-tile-label">Sign in</span>
+                    <p class="vp-dash-tile-desc">Staff and administrators authenticate securely before accessing operational screens.</p>
+                    <span class="vp-dash-tile-meta">Continue →</span>
+                </a>
+                <a class="vp-dash-tile" href="customer/register">
+                    <span class="vp-dash-tile-label">Customer registration</span>
+                    <p class="vp-dash-tile-desc">Create a customer account for bookings, history, and vehicle records.</p>
+                    <span class="vp-dash-tile-meta">Self-service →</span>
+                </a>
+            </div>
+        }
+        else
+        {
+            var role = AuthStateService.CurrentUser.Role;
+            var name = AuthStateService.CurrentUser.Name;
+            <h1 class="vp-dash-title">Welcome back, @name</h1>
+            <p class="vp-dash-lead">
+                <span class="me-2">Signed in as</span>
+                <span class="vp-tag vp-tag-neutral">@role</span>
+                <span class="ms-2">· Choose where to work next.</span>
+            </p>
+
+            @if (role == "Admin")
+            {
+                <div class="vp-dash-grid">
+                    <a class="vp-dash-tile" href="register">
+                        <span class="vp-dash-tile-label">Register user</span>
+                        <p class="vp-dash-tile-desc">Provision staff, customer, or elevated admin accounts.</p>
+                        <span class="vp-dash-tile-meta">Identity</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/users">
+                        <span class="vp-dash-tile-label">Staff &amp; roles</span>
+                        <p class="vp-dash-tile-desc">Maintain the directory, permissions, and lifecycle.</p>
+                        <span class="vp-dash-tile-meta">Directory</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/vendors">
+                        <span class="vp-dash-tile-label">Vendors</span>
+                        <p class="vp-dash-tile-desc">Supplier records feeding procurement and AP context.</p>
+                        <span class="vp-dash-tile-meta">Supply</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/parts">
+                        <span class="vp-dash-tile-label">Parts &amp; stock</span>
+                        <p class="vp-dash-tile-desc">SKU catalogue with quantity signals your buyers expect.</p>
+                        <span class="vp-dash-tile-meta">Inventory</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/purchase-invoices">
+                        <span class="vp-dash-tile-label">Purchase invoices</span>
+                        <p class="vp-dash-tile-desc">Stock-in transactions aligned with warehouse discipline.</p>
+                        <span class="vp-dash-tile-meta">Procurement</span>
+                    </a>
+                    <a class="vp-dash-tile" href="staff/sales-invoices">
+                        <span class="vp-dash-tile-label">Sales invoices</span>
+                        <p class="vp-dash-tile-desc">Counter issuance with payment and loyalty behaviour intact.</p>
+                        <span class="vp-dash-tile-meta">Front desk</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/financial-reports">
+                        <span class="vp-dash-tile-label">Financial reports</span>
+                        <p class="vp-dash-tile-desc">Management-ready rollups without leaving the app.</p>
+                        <span class="vp-dash-tile-meta">Finance</span>
+                    </a>
+                    <a class="vp-dash-tile" href="admin/system-alerts">
+                        <span class="vp-dash-tile-label">System alerts</span>
+                        <p class="vp-dash-tile-desc">Operational health signals for platform owners.</p>
+                        <span class="vp-dash-tile-meta">Operations</span>
+                    </a>
+                    <a class="vp-dash-tile" href="staff/customers/search">
+                        <span class="vp-dash-tile-label">Search customers</span>
+                        <p class="vp-dash-tile-desc">Desk-side CRM lookup across identifiers and plates.</p>
+                        <span class="vp-dash-tile-meta">CRM</span>
+                    </a>
+                </div>
+            }
+            else if (role == "Staff")
+            {
+                <div class="vp-dash-grid">
+                    <a class="vp-dash-tile" href="staff/sales-invoices">
+                        <span class="vp-dash-tile-label">Sales invoices</span>
+                        <p class="vp-dash-tile-desc">Issue stock-out invoices with payment capture.</p>
+                        <span class="vp-dash-tile-meta">Counter</span>
+                    </a>
+                    <a class="vp-dash-tile" href="staff/customers/register">
+                        <span class="vp-dash-tile-label">Register customer</span>
+                        <p class="vp-dash-tile-desc">Capture profiles before vehicles or invoices.</p>
+                        <span class="vp-dash-tile-meta">Onboarding</span>
+                    </a>
+                    <a class="vp-dash-tile" href="staff/customers/search">
+                        <span class="vp-dash-tile-label">Search customers</span>
+                        <p class="vp-dash-tile-desc">Fast lookup across phones, IDs, registrations.</p>
+                        <span class="vp-dash-tile-meta">Lookup</span>
+                    </a>
+                    <a class="vp-dash-tile" href="staff/customer-reports">
+                        <span class="vp-dash-tile-label">Customer reports</span>
+                        <p class="vp-dash-tile-desc">Operational summaries for shift leads.</p>
+                        <span class="vp-dash-tile-meta">Insights</span>
+                    </a>
+                </div>
+            }
+            else if (role == "Customer")
+            {
+                <div class="vp-dash-grid">
+                    <a class="vp-dash-tile" href="customer/profile">
+                        <span class="vp-dash-tile-label">My profile</span>
+                        <p class="vp-dash-tile-desc">Trusted consumer-grade identity screen.</p>
+                        <span class="vp-dash-tile-meta">Account</span>
+                    </a>
+                    <a class="vp-dash-tile" href="customer/vehicles">
+                        <span class="vp-dash-tile-label">My vehicles</span>
+                        <p class="vp-dash-tile-desc">Everything tied to workshop visits in one ledger.</p>
+                        <span class="vp-dash-tile-meta">Garage</span>
+                    </a>
+                    <a class="vp-dash-tile" href="customer/history">
+                        <span class="vp-dash-tile-label">Purchases &amp; services</span>
+                        <p class="vp-dash-tile-desc">Retail and service timelines in a single trustworthy history.</p>
+                        <span class="vp-dash-tile-meta">Timeline</span>
+                    </a>
+                    <a class="vp-dash-tile" href="customer/services">
+                        <span class="vp-dash-tile-label">Book services</span>
+                        <p class="vp-dash-tile-desc">Request appointments without losing context.</p>
+                        <span class="vp-dash-tile-meta">Booking</span>
+                    </a>
+                </div>
+            }
+            else
+            {
+                <p class="vp-dash-lead mb-0">Use the navigation rail to reach the modules available to your account.</p>
+            }
+        }
+    </div>
 </section>

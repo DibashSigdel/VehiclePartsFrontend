@@ -1,0 +1,23 @@
+<div class="vp-skeleton-stack" role="status" aria-live="polite">
+    <span class="vp-visually-hidden">@AccessibilityMessage</span>
+    @for (var i = 0; i < Lines; i++)
+    {
+        var cls = i == 0 ? "vp-skeleton-line wide" : i == Lines - 1 ? "vp-skeleton-line narrow" : "vp-skeleton-line";
+        <div class="@cls"></div>
+    }
+</div>
+
+@code {
+    /// <summary>Human-readable status for screen readers.</summary>
+    [Parameter]
+    public string AccessibilityMessage { get; set; } = "Loading content, please wait.";
+
+    /// <summary>Number of placeholder bars (1–6).</summary>
+    [Parameter]
+    public int Lines { get; set; } = 3;
+
+    protected override void OnParametersSet()
+    {
+        Lines = Math.Clamp(Lines, 1, 6);
+    }
+}

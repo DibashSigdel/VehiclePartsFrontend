@@ -1,0 +1,51 @@
+<section class="auth-shell">
+    <aside class="auth-shell-aside" aria-hidden="true">
+        <div class="auth-aside-content">
+            <div class="auth-logo-row">
+                <span class="auth-logo-mark" aria-hidden="true">VP</span>
+                <div>
+                    <p class="auth-logo-text">VehicleParts</p>
+                    <p class="auth-logo-sub">Service Center</p>
+                </div>
+            </div>
+            <p class="auth-aside-tagline">Parts inventory, sales, and customer care in one place.</p>
+            <ul class="auth-aside-list">
+                <li>Real-time stock and purchase flow</li>
+                <li>Staff tools for customers &amp; invoices</li>
+                <li>Customer portal for services &amp; history</li>
+            </ul>
+        </div>
+    </aside>
+    <div class="auth-shell-main">
+        <div class="auth-card-v2">
+            <header class="auth-card-header">
+                <h1 class="auth-card-title">@Title</h1>
+                @if (!string.IsNullOrWhiteSpace(Subtitle))
+                {
+                    <p class="auth-card-lead">@Subtitle</p>
+                }
+            </header>
+            @ChildContent
+        </div>
+        @if (Footer is not null)
+        {
+            <div class="auth-below-card">
+                @Footer
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+}

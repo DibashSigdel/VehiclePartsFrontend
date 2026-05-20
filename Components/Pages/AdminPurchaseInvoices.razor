@@ -8,7 +8,7 @@
 
 @if (AuthStateService.CurrentUser?.Role != "Admin")
 {
-    <section class="dashboard-card">
+    <section class="dashboard-card vp-access-denied">
         <p class="status-text">Admin access required.</p>
     </section>
 }
@@ -45,7 +45,7 @@ else
             @for (var i = 0; i < _lines.Count; i++)
             {
                 var index = i;
-                <div class="border rounded p-3 mb-3" @key="_lines[index].RowKey">
+                <div class="vp-form-line-card" @key="_lines[index].RowKey">
                     <div class="mb-2">
                         <label class="form-label">Part</label>
                         <InputSelect class="form-control" TValue="int" @bind-Value="_lines[index].PartId">
@@ -83,12 +83,12 @@ else
 
             @if (!string.IsNullOrEmpty(_loadError))
             {
-                <p class="mt-3 status-text">@_loadError</p>
+                <p class="mt-3 status-alert error">@_loadError</p>
             }
 
             @if (!string.IsNullOrEmpty(_message))
             {
-                <p class="mt-3 status-text @(_messageOk ? "text-success" : "")">@_message</p>
+                <p class="mt-3 status-alert @(_messageOk ? "success" : "error")">@_message</p>
             }
         </section>
 
@@ -96,11 +96,11 @@ else
             <h2 class="h5 mb-3">Recent purchase invoices</h2>
             @if (_isLoadingList)
             {
-                <p class="status-text">Loading…</p>
+                <LoadingSkeleton AccessibilityMessage="Loading recent purchase invoices." Lines="3" />
             }
             else if (_recent.Count == 0)
             {
-                <p class="subtitle">No invoices yet.</p>
+                <EmptyState Icon="📥" Title="No purchase invoices yet" Message="Create your first stock-in invoice to see procurement history here." />
             }
             else
             {
@@ -121,7 +121,7 @@ else
                                     <td>@row.PurchaseDate.ToLocalTime().ToString("g")</td>
                                     <td>@row.VendorName</td>
                                     <td>@row.LineCount</td>
-                                    <td class="text-end">@row.TotalCost.ToString("N2")</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.TotalCost)</td>
                                 </tr>
                             }
                         </tbody>
@@ -237,7 +237,7 @@ else
         }
 
         _messageOk = true;
-        _message = $"Purchase #{result.PurchaseInvoiceId} saved. Total {result.TotalCost:N2}.";
+        _message = $"Purchase #{result.PurchaseInvoiceId} saved. Total {NepalCurrency.Npr(result.TotalCost)}.";
 
         _recent = await AuthApiService.GetAdminPurchaseInvoicesAsync(AuthStateService.CurrentUser.Token);
         _parts = await AuthApiService.GetAdminPartsAsync(AuthStateService.CurrentUser.Token);

@@ -3,58 +3,63 @@
 @inject AuthStateService AuthStateService
 @inject NavigationManager NavigationManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Register user</PageTitle>
 
-<section class="auth-card">
-    <h1>Register User</h1>
-    <p class="subtitle">Create a new user account in the system.</p>
+<section class="dashboard-card page-panel-register">
+    <div class="page-panel-register-head">
+        <h1 class="page-panel-register-title">Register user</h1>
+        <p class="subtitle">Create a staff, admin, or customer account. New users can sign in from the login page.</p>
+    </div>
 
     <EditForm Model="_model" OnValidSubmit="HandleRegister" FormName="RegisterForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <div class="mb-3">
-            <label>Name</label>
-            <InputText class="form-control" @bind-Value="_model.Name" />
+        <div class="auth-field-row">
+            <div class="auth-field">
+                <label class="auth-label" for="reg-name">Name</label>
+                <InputText id="reg-name" class="form-control auth-input" @bind-Value="_model.Name" />
+            </div>
+            <div class="auth-field">
+                <label class="auth-label" for="reg-role">Role</label>
+                <InputSelect id="reg-role" class="form-control auth-input" @bind-Value="_model.Role">
+                    <option value="Admin">Admin</option>
+                    <option value="Staff">Staff</option>
+                    <option value="Customer">Customer</option>
+                </InputSelect>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label>Email</label>
-            <InputText class="form-control" @bind-Value="_model.Email" />
+        <div class="auth-field-row">
+            <div class="auth-field">
+                <label class="auth-label" for="reg-email">Email</label>
+                <InputText id="reg-email" class="form-control auth-input" @bind-Value="_model.Email" />
+            </div>
+            <div class="auth-field">
+                <label class="auth-label" for="reg-phone">Phone</label>
+                <InputText id="reg-phone" class="form-control auth-input" @bind-Value="_model.Phone" />
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label>Phone</label>
-            <InputText class="form-control" @bind-Value="_model.Phone" />
+        <div class="auth-field-row">
+            <div class="auth-field">
+                <label class="auth-label" for="reg-password">Password</label>
+                <InputText id="reg-password" class="form-control auth-input" @bind-Value="_model.Password" type="password" />
+            </div>
+            <div class="auth-field">
+                <label class="auth-label" for="reg-address">Address</label>
+                <InputText id="reg-address" class="form-control auth-input" @bind-Value="_model.Address" />
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label>Password</label>
-            <InputText class="form-control" @bind-Value="_model.Password" type="password" />
-        </div>
-
-        <div class="mb-3">
-            <label>Role</label>
-            <InputSelect class="form-control" @bind-Value="_model.Role">
-                <option value="Admin">Admin</option>
-                <option value="Staff">Staff</option>
-                <option value="Customer">Customer</option>
-            </InputSelect>
-        </div>
-
-        <div class="mb-3">
-            <label>Address</label>
-            <InputText class="form-control" @bind-Value="_model.Address" />
-        </div>
-
-        <button class="btn btn-success w-100" type="submit" disabled="@_isLoading">
-            @(_isLoading ? "Registering..." : "Register")
+        <button class="btn btn-primary w-100 auth-submit mt-1" type="submit" disabled="@_isLoading">
+            @(_isLoading ? "Creating account…" : "Create account")
         </button>
     </EditForm>
 
     @if (!string.IsNullOrWhiteSpace(_message))
     {
-        <p class="mt-3 status-text">@_message</p>
+        <p class="mt-3 auth-inline-message @( _message.Contains("success", StringComparison.OrdinalIgnoreCase) ? "auth-inline-message--ok" : "auth-inline-message--err")">@_message</p>
     }
 </section>
 

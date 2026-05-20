@@ -1,53 +1,68 @@
 @page "/customer/register"
+@layout AuthLayout
 @inject AuthApiService AuthApiService
 @inject AuthStateService AuthStateService
 @inject NavigationManager NavigationManager
 
-<PageTitle>Customer Registration</PageTitle>
+<PageTitle>Create account</PageTitle>
 
-<section class="auth-card">
-    <h1>Customer Self Registration</h1>
-    <p class="subtitle">Create your customer account to track and manage your details.</p>
+<AuthPageShell Title="Create your account" Subtitle="Register as a customer to book services, track purchases, and manage your vehicles.">
+    <ChildContent>
+        <EditForm Model="_model" OnValidSubmit="HandleRegister" FormName="CustomerRegisterForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="mb-3" />
 
-    <EditForm Model="_model" OnValidSubmit="HandleRegister" FormName="CustomerRegisterForm">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+            <div class="auth-field-row">
+                <div class="auth-field">
+                    <label class="auth-label" for="cust-name">Full name</label>
+                    <InputText id="cust-name" class="form-control auth-input" @bind-Value="_model.Name" placeholder="Jane Doe" />
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="cust-phone">Phone</label>
+                    <InputText id="cust-phone" class="form-control auth-input" @bind-Value="_model.Phone" placeholder="+977 98xxxxxxxx" />
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label>Name</label>
-            <InputText class="form-control" @bind-Value="_model.Name" />
-        </div>
+            <div class="auth-field">
+                <label class="auth-label" for="cust-email">Email</label>
+                <InputText id="cust-email" class="form-control auth-input" @bind-Value="_model.Email" autocomplete="email" placeholder="you@example.com" />
+            </div>
 
-        <div class="mb-3">
-            <label>Email</label>
-            <InputText class="form-control" @bind-Value="_model.Email" />
-        </div>
+            <div class="auth-field">
+                <label class="auth-label" for="cust-password">Password</label>
+                <InputText id="cust-password" class="form-control auth-input" @bind-Value="_model.Password" type="password" autocomplete="new-password" placeholder="Choose a strong password" />
+            </div>
 
-        <div class="mb-3">
-            <label>Phone</label>
-            <InputText class="form-control" @bind-Value="_model.Phone" />
-        </div>
+            <div class="auth-field">
+                <label class="auth-label" for="cust-address">Address</label>
+                <InputText id="cust-address" class="form-control auth-input" @bind-Value="_model.Address" placeholder="City, street" />
+            </div>
 
-        <div class="mb-3">
-            <label>Password</label>
-            <InputText class="form-control" @bind-Value="_model.Password" type="password" />
-        </div>
+            <button class="btn btn-primary w-100 auth-submit" type="submit" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span class="auth-btn-spinner" aria-hidden="true"></span>
+                    <span>Creating account…</span>
+                }
+                else
+                {
+                    <span>Create account</span>
+                }
+            </button>
+        </EditForm>
 
-        <div class="mb-3">
-            <label>Address</label>
-            <InputText class="form-control" @bind-Value="_model.Address" />
-        </div>
-
-        <button class="btn btn-success w-100" type="submit" disabled="@_isLoading">
-            @(_isLoading ? "Registering..." : "Create Customer Account")
-        </button>
-    </EditForm>
-
-    @if (!string.IsNullOrWhiteSpace(_message))
-    {
-        <p class="mt-3 status-text">@_message</p>
-    }
-</section>
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="auth-inline-message auth-inline-message--err">@_message</p>
+        }
+    </ChildContent>
+    <Footer>
+        <p class="auth-foot-note">
+            Already have an account?
+            <a href="login">Sign in</a>
+        </p>
+    </Footer>
+</AuthPageShell>
 
 @code {
     private readonly CustomerSelfRegisterRequestDto _model = new();
@@ -72,11 +87,10 @@
 
         if (!success)
         {
-            _message = "Registration failed. Please verify your details and use a unique email.";
+            _message = "Registration failed. Check your details and use a unique email.";
             return;
         }
 
-        _message = "Customer account created successfully. Please login.";
         NavigationManager.NavigateTo("/login");
     }
 }

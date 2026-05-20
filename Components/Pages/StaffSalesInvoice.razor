@@ -8,7 +8,7 @@
 
 @if (AuthStateService.CurrentUser?.Role != "Staff" && AuthStateService.CurrentUser?.Role != "Admin")
 {
-    <section class="dashboard-card">
+    <section class="dashboard-card vp-access-denied">
         <p class="status-text">Staff or admin access required.</p>
     </section>
 }
@@ -65,13 +65,13 @@ else
 
             @if (CalculatedSubTotal > 0)
             {
-                <div class="mb-3 p-3 border rounded">
-                    <p class="mb-1"><strong>Subtotal:</strong> @CalculatedSubTotal.ToString("N2")</p>
+                <div class="mb-3 vp-quote-panel">
+                    <p class="mb-1"><strong>Subtotal:</strong> @NepalCurrency.Npr(CalculatedSubTotal)</p>
                     @if (LoyaltyDiscountPreview > 0)
                     {
-                        <p class="mb-1 status-text">Loyalty: 10% off (@LoyaltyDiscountPreview.ToString("N2")) applies when subtotal is over 5,000.</p>
+                        <p class="mb-1 status-text">Loyalty: 10% off (@NepalCurrency.Npr(LoyaltyDiscountPreview)) applies when subtotal is over NPR 5,000.</p>
                     }
-                    <p class="mb-0"><strong>Discount used:</strong> @EffectiveDiscountPreview.ToString("N2") · <strong>Total:</strong> @TotalPreview.ToString("N2")</p>
+                    <p class="mb-0"><strong>Discount used:</strong> @NepalCurrency.Npr(EffectiveDiscountPreview) · <strong>Total:</strong> @NepalCurrency.Npr(TotalPreview)</p>
                 </div>
             }
 
@@ -87,14 +87,14 @@ else
             @for (var i = 0; i < _lines.Count; i++)
             {
                 var index = i;
-                <div class="border rounded p-3 mb-3" @key="_lines[index].RowKey">
+                <div class="vp-form-line-card" @key="_lines[index].RowKey">
                     <div class="mb-2">
                         <label class="form-label">Part</label>
                         <select class="form-control" value="@_lines[index].PartId" @onchange="@(e => OnPartHtmlChange(index, e))">
                             <option value="0">Select part…</option>
                             @foreach (var p in _parts)
                             {
-                                <option value="@p.PartId">@p.PartName — stock @p.QuantityOnHand — list @p.SellingPrice.ToString("N2")</option>
+                                <option value="@p.PartId">@p.PartName — stock @p.QuantityOnHand — list @NepalCurrency.Npr(p.SellingPrice)</option>
                             }
                         </select>
                     </div>
@@ -130,7 +130,7 @@ else
 
             @if (!string.IsNullOrEmpty(_message))
             {
-                <p class="mt-3 status-text">@_message</p>
+                <p class="mt-3 status-alert @(_message.StartsWith("Invoice #", StringComparison.OrdinalIgnoreCase) ? "success" : "error")">@_message</p>
             }
         </section>
 
@@ -142,11 +142,11 @@ else
             }
             @if (_isLoadingList)
             {
-                <p class="status-text">Loading…</p>
+                <LoadingSkeleton AccessibilityMessage="Loading recent sales invoices." Lines="3" />
             }
             else if (_recent.Count == 0)
             {
-                <p class="subtitle">No sales yet.</p>
+                <EmptyState Icon="📤" Title="No sales invoices yet" Message="Invoices created at the counter will appear in this list." />
             }
             else
             {
@@ -173,8 +173,11 @@ else
                                             <br /><small class="text-muted">@row.CustomerEmail</small>
                                         }
                                     </td>
-                                    <td>@row.PaymentType / @row.PaymentStatus</td>
-                                    <td class="text-end">@row.TotalAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="vp-tag vp-tag-info">@row.PaymentType</span>
+                                        <span class="vp-tag @(string.Equals(row.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? "vp-tag-paid" : "vp-tag-pending") ms-1">@row.PaymentStatus</span>
+                                    </td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.TotalAmount)</td>
                                     <td class="text-end">
                                         <button type="button" class="btn btn-sm btn-outline-primary"
                                                 disabled="@(_emailingInvoiceId == row.SalesInvoiceId)"
@@ -325,8 +328,8 @@ else
         }
 
         _message = result.LoyaltyDiscountApplied
-            ? $"Invoice #{result.SalesInvoiceId} saved. Loyalty 10% applied ({result.LoyaltyDiscountAmount:N2} off). Total {result.TotalAmount:N2}."
-            : $"Invoice #{result.SalesInvoiceId} saved. Total {result.TotalAmount:N2}.";
+            ? $"Invoice #{result.SalesInvoiceId} saved. Loyalty 10% applied ({NepalCurrency.Npr(result.LoyaltyDiscountAmount)} off). Total {NepalCurrency.Npr(result.TotalAmount)}."
+            : $"Invoice #{result.SalesInvoiceId} saved. Total {NepalCurrency.Npr(result.TotalAmount)}.";
         _recent = await AuthApiService.GetStaffSalesInvoicesAsync(AuthStateService.CurrentUser.Token);
         _parts = await AuthApiService.GetStaffSalesPartsAsync(AuthStateService.CurrentUser.Token);
 

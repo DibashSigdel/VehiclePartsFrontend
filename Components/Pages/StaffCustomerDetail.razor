@@ -112,9 +112,9 @@ else
                                 <td>@inv.SalesInvoiceId</td>
                                 <td>@inv.InvoiceDate.ToLocalTime().ToString("g")</td>
                                 <td class="text-end">@inv.ItemCount</td>
-                                <td class="text-end">@inv.SubTotal.ToString("N2")</td>
-                                <td class="text-end">@inv.DiscountAmount.ToString("N2")</td>
-                                <td class="text-end">@inv.TotalAmount.ToString("N2")</td>
+                                <td class="text-end">@NepalCurrency.Npr(inv.SubTotal)</td>
+                                <td class="text-end">@NepalCurrency.Npr(inv.DiscountAmount)</td>
+                                <td class="text-end">@NepalCurrency.Npr(inv.TotalAmount)</td>
                                 <td>@inv.PaymentType</td>
                                 <td>@inv.PaymentStatus</td>
                             </tr>

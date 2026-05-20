@@ -60,17 +60,17 @@ else
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="status-chip success">
-                        Sales: @_report.TotalSalesRevenue.ToString("N2") (@_report.SalesInvoiceCount invoices)
+                        Sales: @NepalCurrency.Npr(_report.TotalSalesRevenue) (@_report.SalesInvoiceCount invoices)
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="status-chip neutral">
-                        Purchases: @_report.TotalPurchaseCost.ToString("N2") (@_report.PurchaseInvoiceCount invoices)
+                        Purchases: @NepalCurrency.Npr(_report.TotalPurchaseCost) (@_report.PurchaseInvoiceCount invoices)
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="status-chip @(_report.GrossProfit >= 0 ? "success" : "error")">
-                        Gross profit: @_report.GrossProfit.ToString("N2")
+                        Gross profit: @NepalCurrency.Npr(_report.GrossProfit)
                     </div>
                 </div>
             </div>
@@ -101,9 +101,9 @@ else
                             {
                                 <tr>
                                     <td>@row.Label</td>
-                                    <td class="text-end">@row.SalesRevenue.ToString("N2")</td>
-                                    <td class="text-end">@row.PurchaseCost.ToString("N2")</td>
-                                    <td class="text-end">@row.GrossProfit.ToString("N2")</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.SalesRevenue)</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.PurchaseCost)</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.GrossProfit)</td>
                                     <td class="text-end">@row.SalesCount</td>
                                     <td class="text-end">@row.PurchaseCount</td>
                                 </tr>

@@ -13,7 +13,8 @@
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column nav-list">
+<nav class="flex-column nav-list">
+        <div class="nav-section-label" aria-hidden="true">Overview</div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Dashboard
@@ -22,28 +23,25 @@
 
         @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Admin")
         {
+            <div class="nav-section-label" aria-hidden="true">Administration</div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="register">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register User
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register user
                 </NavLink>
             </div>
-        }
-
-        @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Admin")
-        {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="admin/users">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Manage Staff & Roles
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Staff &amp; roles
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="admin/vendors">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Manage Vendors
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Vendors
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="admin/parts">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Manage Parts
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Parts inventory
                 </NavLink>
             </div>
             <div class="nav-item px-3">
@@ -65,6 +63,7 @@
 
         @if (AuthStateService.IsLoggedIn && (AuthStateService.CurrentUser?.Role == "Staff" || AuthStateService.CurrentUser?.Role == "Admin"))
         {
+            <div class="nav-section-label" aria-hidden="true">Front desk &amp; sales</div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="staff/sales-invoices">
                     <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Sales invoices
@@ -72,7 +71,7 @@
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="staff/customers/register">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register Customer
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register customer
                 </NavLink>
             </div>
             <div class="nav-item px-3">
@@ -89,33 +88,35 @@
 
         @if (AuthStateService.IsLoggedIn && AuthStateService.CurrentUser?.Role == "Customer")
         {
+            <div class="nav-section-label" aria-hidden="true">Customer portal</div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customer/profile">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My Profile
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My profile
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customer/vehicles">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My Vehicles
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My vehicles
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customer/history">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My History
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My history
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customer/services">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Book &amp; request services
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Book services
                 </NavLink>
             </div>
         }
 
         @if (!AuthStateService.IsLoggedIn)
         {
+            <div class="nav-section-label" aria-hidden="true">Account</div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customer/register">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Customer Register
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Customer register
                 </NavLink>
             </div>
             <div class="nav-item px-3">
@@ -134,7 +135,7 @@
                 </span>
             </div>
             <div class="nav-item px-3">
-                <button class="nav-link nav-action-btn" @onclick="Logout">Logout</button>
+                <button type="button" class="nav-link nav-action-btn" @onclick="Logout">Logout</button>
             </div>
         }
     </nav>

@@ -66,7 +66,7 @@ else
                                     <td>@row.CustomerName<br /><small class="text-muted">@row.Email</small></td>
                                     <td>@row.Phone</td>
                                     <td class="text-end">@row.InvoiceCount</td>
-                                    <td class="text-end">@row.TotalSpent.ToString("N2")</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.TotalSpent)</td>
                                     <td>@(row.LastPurchaseDate?.ToLocalTime().ToString("d") ?? "—")</td>
                                 </tr>
                             }
@@ -102,7 +102,7 @@ else
                                     <td>@row.CustomerName</td>
                                     <td>@row.Phone</td>
                                     <td class="text-end">@row.InvoiceCount</td>
-                                    <td class="text-end">@row.TotalSpent.ToString("N2")</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.TotalSpent)</td>
                                     <td>@(row.LastPurchaseDate?.ToLocalTime().ToString("d") ?? "—")</td>
                                 </tr>
                             }
@@ -139,7 +139,7 @@ else
                                     <td>@row.SalesInvoiceId</td>
                                     <td>@row.CustomerName</td>
                                     <td>@row.Phone</td>
-                                    <td class="text-end">@row.TotalAmount.ToString("N2")</td>
+                                    <td class="text-end">@NepalCurrency.Npr(row.TotalAmount)</td>
                                     <td>@(row.CreditDueDate?.ToLocalTime().ToString("d") ?? "—")</td>
                                     <td class="text-end">@row.DaysOverdue</td>
                                 </tr>

@@ -1,0 +1,29 @@
+<div class="vp-empty-state">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <div class="vp-empty-icon" aria-hidden="true">@Icon</div>
+    }
+    <h3 class="vp-empty-title">@Title</h3>
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="vp-empty-text">@Message</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Short heading shown to the user.</summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Optional supporting copy.</summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>Optional single emoji or symbol for visual cue.</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
